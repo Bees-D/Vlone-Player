@@ -11,9 +11,13 @@
 }
 
 body {
-  @apply bg-background text-white selection:bg-primary/30 antialiased;
+  @apply bg-background text-white antialiased;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-primary), transparent 70%);
 }
 
 /* Custom scrollbar */
