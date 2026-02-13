@@ -89,6 +89,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const radioSongsInjectedRef = useRef<Set<number>>(new Set());
     const prevVolumeRef = useRef(0.7);
 
+    // Initial Cloud Pull
+    useEffect(() => {
+        const pullCloud = async () => {
+            if (user && cloudSync && storageRef.current) {
+                try {
+                    const cloudData = await storageRef.current.getCloudPlaylists(user.vaultPath);
+                    if (cloudData) {
+                        setPlaylists(cloudData);
+                    }
+                } catch (e) {
+                    console.error('Initial cloud pull failed:', e);
+                }
+            }
+        };
+        pullCloud();
+    }, []); // Only run once on mount
+
     // Add to stats when song changes
     useEffect(() => {
         if (currentSong) {

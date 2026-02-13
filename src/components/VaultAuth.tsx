@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Lock, LogIn, LogOut, Cloud, CloudOff, ShieldCheck, Loader } from 'lucide-react';
+import { User, Lock, LogIn, LogOut, Cloud, CloudOff, ShieldCheck, Loader, CheckCircle } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { clsx } from 'clsx';
 
@@ -103,6 +103,21 @@ const VaultAuth: React.FC = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold placeholder:text-white/10 focus:border-primary outline-none transition-all"
                     />
+                </div>
+
+                <div className="flex items-center justify-between px-1">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                        <div className="relative w-5 h-5 rounded border border-white/10 bg-white/5 flex items-center justify-center transition-all group-hover:border-primary/50">
+                            <input
+                                type="checkbox"
+                                defaultChecked
+                                className="peer absolute opacity-0 w-full h-full cursor-pointer"
+                            />
+                            <CheckCircle className="w-3 h-3 text-primary opacity-0 peer-checked:opacity-100 transition-opacity" />
+                        </div>
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Remember Me</span>
+                    </label>
+                    <a href="#" className="text-[10px] font-bold text-primary/40 hover:text-primary uppercase tracking-widest transition-colors">Forgot Hash?</a>
                 </div>
 
                 {error && (
