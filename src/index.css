@@ -8,21 +8,65 @@
   --color-primary-light: #ff4d8d;
   --color-primary-dark: #b30035;
   --color-accent: #a855f7;
+  --shadow-diffuse: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  --shadow-glow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 body {
   @apply bg-background text-white antialiased;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* Typography Hierarchy */
+h1,
+h2,
+h3,
+.heading-bespoke {
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  @apply font-black italic uppercase italic;
+}
+
+.body-relaxed {
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* Bespoke Surface System */
+.bespoke-card {
+  @apply bg-gradient-to-br from-white/[0.04] to-transparent;
+  box-shadow: var(--shadow-diffuse), var(--shadow-glow);
+  @apply border border-white/[0.08] rounded-[2rem] transition-all duration-500 ease-out;
+}
+
+.bespoke-card:hover {
+  @apply border-white/[0.15] scale-[1.01] bg-white/[0.06];
+}
+
+.bespoke-button {
+  @apply bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20 transition-all duration-300 active:scale-95 hover:scale-[1.03] hover:shadow-primary/30;
+  box-shadow: var(--shadow-glow), 0 10px 15px -3px rgba(255, 0, 76, 0.2);
+}
+
+.glass-morphism {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  box-shadow: var(--shadow-glow);
 }
 
 ::selection {
   background-color: color-mix(in srgb, var(--color-primary), transparent 70%);
 }
 
-/* Custom scrollbar */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-light via-primary to-accent;
+}
+
+/* Scrollbar Refinement */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -30,13 +74,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  @apply bg-white/10 rounded-full hover:bg-primary/40 transition-colors;
 }
 
-.glass-morphism {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+/* Mobile & Asymmetry Helpers */
+@media (max-width: 768px) {
+  .bespoke-card {
+    border-radius: 1.5rem;
+  }
 }
 
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-accent;
+.asymmetric-gap {
+  gap: clamp(1rem, 5%, 3rem);
 }

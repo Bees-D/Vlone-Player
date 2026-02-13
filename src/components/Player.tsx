@@ -23,8 +23,6 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
         nextSong, prevSong, playbackMode, setPlaybackMode, playbackSpeed, setPlaybackSpeed, downloadSong, queue, currentIndex
     } = usePlayer();
     const { resolveCoverUrl } = useCustomCovers();
-    const [showSpeedPicker, setShowSpeedPicker] = useState(false);
-
 
     const playbackModes: Array<{ mode: PlaybackMode; icon: React.ElementType; label: string }> = [
         { mode: 'normal', icon: List, label: 'Normal' },
@@ -32,8 +30,6 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
         { mode: 'smart-shuffle', icon: Sparkles, label: 'Smart Shuffle' },
         { mode: 'radio', icon: Radio, label: '999 Radio' },
     ];
-
-    const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
     const cyclePlaybackMode = () => {
         const modes: PlaybackMode[] = ['normal', 'shuffle', 'smart-shuffle', 'radio'];
@@ -53,11 +49,11 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
     return (
         <div className="fixed bottom-0 left-0 right-0 h-24 bg-black/80 backdrop-blur-2xl border-t border-white/5 px-4 md:px-6 flex items-center justify-between z-50">
             {/* Song Info */}
-            <div className="flex items-center gap-3 w-1/4 min-w-0">
+            <div className="flex items-center gap-3 w-1/2 md:w-1/4 min-w-0">
                 <motion.div
                     layoutId="player-art"
                     onClick={onExpand}
-                    className="w-14 h-14 rounded-lg overflow-hidden bg-surface relative group cursor-pointer flex-shrink-0"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden bg-surface relative group cursor-pointer flex-shrink-0 bespoke-card"
                 >
                     {coverUrl ? (
                         <img src={coverUrl} alt={currentSong.title} className="w-full h-full object-cover" />
@@ -66,77 +62,39 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
                             <Play className="w-6 h-6 text-white/40" />
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Maximize2 className="w-5 h-5 text-white" />
-                    </div>
                 </motion.div>
                 <div className="overflow-hidden min-w-0">
-                    <h4 className="font-bold text-sm truncate">{currentSong.title}</h4>
-                    <div className="flex items-center gap-2 min-w-0">
-                        <p className="text-xs text-white/50 truncate">{currentSong.artist}</p>
-                        {currentSong.producer && (
-                            <>
-                                <div className="w-0.5 h-0.5 rounded-full bg-white/20 flex-shrink-0" />
-                                <button
-                                    onClick={() => onProducerClick?.(currentSong.producer!)}
-                                    className="text-[10px] text-primary/60 hover:text-primary truncate uppercase tracking-widest transition-colors cursor-pointer"
-                                >
-                                    {currentSong.producer}
-                                </button>
-                            </>
-                        )}
+                    <h4 className="font-black text-xs md:text-sm truncate uppercase italic tracking-tight">{currentSong.title}</h4>
+                    <div className="flex items-center gap-2 min-w-0 opacity-60">
+                        <p className="text-[10px] md:text-xs truncate font-bold">{currentSong.artist}</p>
                     </div>
                 </div>
             </div>
 
             {/* Controls & Progress */}
-            <div className="flex flex-col items-center gap-2 w-2/4 max-w-2xl px-4 md:px-8">
-                <div className="flex items-center gap-4 md:gap-6">
-                    {/* Playback Mode Toggle */}
-                    <button
-                        onClick={cyclePlaybackMode}
-                        className={clsx(
-                            "transition-colors relative group hidden md:block",
-                            playbackMode !== 'normal' ? "text-primary" : "text-white/20 hover:text-white"
-                        )}
-                        title={currentModeInfo.label}
-                    >
-                        <ModeIcon className="w-4 h-4" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                            <p className="text-[10px] font-bold uppercase">{currentModeInfo.label}</p>
-                        </div>
-                    </button>
-
-                    <button onClick={prevSong} className="text-white/40 hover:text-white transition-colors">
+            <div className="flex flex-col items-center gap-1.5 w-full md:w-2/4 max-w-2xl px-2 md:px-8 absolute md:relative bottom-16 md:bottom-0 left-0 md:bg-transparent bg-black/40 backdrop-blur-lg md:backdrop-blur-none py-2 md:py-0">
+                <div className="flex items-center gap-4 md:gap-8">
+                    <button onClick={prevSong} className="text-white/40 hover:text-white transition-all hover:scale-110">
                         <SkipBack className="w-5 h-5 fill-current" />
                     </button>
 
                     <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={togglePlay}
-                        className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg shadow-white/5"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full bespoke-button flex items-center justify-center text-white"
                     >
-                        {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
+                        {isPlaying ? <Pause className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6 ml-1" />}
                     </motion.button>
 
-                    <button onClick={nextSong} className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={nextSong} className="text-white/40 hover:text-white transition-all hover:scale-110">
                         <SkipForward className="w-5 h-5 fill-current" />
-                    </button>
-
-                    {/* Download */}
-                    <button
-                        onClick={() => downloadSong(currentSong)}
-                        className="text-white/20 hover:text-white transition-colors hidden md:block"
-                        title="Download"
-                    >
-                        <Download className="w-4 h-4" />
                     </button>
                 </div>
 
-                <div className="w-full flex items-center gap-3">
-                    <span className="text-[10px] text-white/40 font-mono w-8">{formatDuration(currentTime)}</span>
-                    <div className="flex-1 h-1 bg-white/10 rounded-full relative group cursor-pointer overflow-hidden">
+                <div className="w-full flex items-center gap-3 px-4">
+                    <span className="text-[9px] text-white/30 font-mono w-8 text-right">{formatDuration(currentTime)}</span>
+                    <div className="flex-1 h-1 bg-white/5 rounded-full relative group cursor-pointer overflow-hidden">
                         <input
                             type="range"
                             min={0}
@@ -146,88 +104,53 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div
-                            className="absolute left-0 top-0 h-full bg-primary rounded-full"
+                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary to-primary-light rounded-full"
                             style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                         />
                     </div>
-                    <span className="text-[10px] text-white/40 font-mono w-8">{formatDuration(duration)}</span>
+                    <span className="text-[9px] text-white/30 font-mono w-8">{formatDuration(duration)}</span>
                 </div>
-
-                {/* Mode indicators */}
-                {playbackMode === 'radio' && (
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-primary/10 px-3 py-0.5 rounded-full border border-primary/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">999 Radio Live</span>
-                    </div>
-                )}
-
-                {playbackMode === 'smart-shuffle' && (
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-accent/10 px-3 py-0.5 rounded-full border border-accent/20">
-                        <Sparkles className="w-2.5 h-2.5 text-accent" />
-                        <span className="text-[9px] font-black text-accent uppercase tracking-widest">Smart Shuffle</span>
-                    </div>
-                )}
             </div>
 
             {/* Utilities */}
-            <div className="flex items-center justify-end gap-2 md:gap-4 w-1/4">
-                {/* Playback Speed */}
-                <div className="relative hidden md:block">
-                    <button
-                        onClick={() => setShowSpeedPicker(!showSpeedPicker)}
-                        className={clsx(
-                            "flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-black transition-colors border",
-                            playbackSpeed !== 1 ? "text-accent border-accent/20 bg-accent/10" : "text-white/30 border-white/5 hover:text-white"
-                        )}
-                    >
-                        <Gauge className="w-3 h-3" />
-                        {playbackSpeed}x
-                    </button>
-
-                    {showSpeedPicker && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-[#121217] border border-white/10 rounded-xl p-1 shadow-2xl shadow-black/50">
-                            {speedOptions.map(speed => (
-                                <button
-                                    key={speed}
-                                    onClick={() => { setPlaybackSpeed(speed); setShowSpeedPicker(false); }}
-                                    className={clsx(
-                                        "block w-full px-4 py-2 text-xs font-bold rounded-lg text-left transition-colors",
-                                        playbackSpeed === speed ? "bg-primary text-white" : "text-white/50 hover:bg-white/10"
-                                    )}
-                                >
-                                    {speed}x
-                                </button>
-                            ))}
-                        </div>
+            <div className="flex items-center justify-end gap-3 md:gap-5 w-1/4">
+                {/* Playback Mode (Mobile Toggle) */}
+                <button
+                    onClick={cyclePlaybackMode}
+                    className={clsx(
+                        "p-2 rounded-xl transition-all",
+                        playbackMode !== 'normal' ? "text-primary bg-primary/10" : "text-white/20 hover:text-white"
                     )}
-                </div>
+                    title={currentModeInfo.label}
+                >
+                    <ModeIcon className="w-5 h-5" />
+                </button>
 
                 {/* Queue Button */}
                 <button
                     onClick={onQueueToggle}
                     className={clsx(
-                        "relative p-2 rounded-lg transition-colors",
-                        showQueue ? "text-primary bg-primary/10" : "text-white/30 hover:text-white"
+                        "relative p-2.5 rounded-xl bespoke-card flex items-center justify-center transition-all",
+                        showQueue ? "text-primary border-primary/40 bg-primary/10" : "text-white/30"
                     )}
-                    title="Queue"
                 >
                     <ListMusic className="w-5 h-5" />
                     {upcomingCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-[8px] font-black rounded-full flex items-center justify-center">
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bespoke-button text-[8px] rounded-full flex items-center justify-center">
                             {upcomingCount > 99 ? '99+' : upcomingCount}
                         </span>
                     )}
                 </button>
 
-                {/* Volume */}
-                <div className="flex items-center gap-2 group relative">
+                {/* Volume (Desktop Only) */}
+                <div className="hidden md:flex items-center gap-3 group">
                     <button
                         onClick={() => setVolume(volume > 0 ? 0 : 0.7)}
-                        className="text-white/40 hover:text-white transition-colors"
+                        className="text-white/30 hover:text-white transition-transform hover:scale-110"
                     >
                         {volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                     </button>
-                    <div className="w-20 h-1 bg-white/10 rounded-full relative overflow-hidden hidden md:block">
+                    <div className="w-24 h-1 bg-white/5 rounded-full relative overflow-hidden">
                         <input
                             type="range"
                             min={0}
@@ -238,11 +161,27 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div
-                            className="absolute left-0 top-0 h-full bg-white/60 group-hover:bg-primary rounded-full transition-colors"
+                            className="absolute left-0 top-0 h-full bg-white/20 group-hover:bg-primary transition-colors"
                             style={{ width: `${volume * 100}%` }}
                         />
                     </div>
                 </div>
+            </div>
+
+            {/* Mode indicators */}
+            <div className="absolute top-1 left-1/2 -translate-x-1/2 hidden md:block">
+                {playbackMode === 'radio' && (
+                    <div className="flex items-center gap-2 bg-primary/10 px-3 py-0.5 rounded-full border border-primary/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">999 Radio Live</span>
+                    </div>
+                )}
+                {playbackMode === 'smart-shuffle' && (
+                    <div className="flex items-center gap-2 bg-accent/10 px-3 py-0.5 rounded-full border border-accent/20">
+                        <Sparkles className="w-2.5 h-2.5 text-accent" />
+                        <span className="text-[9px] font-black text-accent uppercase tracking-widest">Smart Shuffle</span>
+                    </div>
+                )}
             </div>
         </div>
     );

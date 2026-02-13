@@ -139,9 +139,9 @@ const MainLayout: React.FC = () => {
 
             {/* Sidebar */}
             <div className={clsx(
-                "md:block",
+                "md:block transition-all duration-500 ease-in-out",
                 showMobileSidebar
-                    ? "fixed inset-y-0 left-0 z-50 block"
+                    ? "fixed inset-y-0 left-0 z-50 w-[85%] sm:w-80"
                     : "hidden"
             )}>
                 <Sidebar activeView={activeView} setActiveView={handleSetActiveView} />

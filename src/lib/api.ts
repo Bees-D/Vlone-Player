@@ -112,17 +112,17 @@ export const api = {
     },
 
     async getCategories(): Promise<Category[]> {
-        const res = await fetchWithTimeout(`${BASE_URL}/categories`);
+        const res = await fetchWithTimeout(`${BASE_URL}/categories/`);
         return res.json();
     },
 
     async getEras(): Promise<Era[]> {
-        const res = await fetchWithTimeout(`${BASE_URL}/eras`);
+        const res = await fetchWithTimeout(`${BASE_URL}/eras/`);
         return res.json();
     },
 
     async getStats(): Promise<Stats> {
-        const res = await fetchWithTimeout(`${BASE_URL}/stats`);
+        const res = await fetchWithTimeout(`${BASE_URL}/stats/`);
         return res.json();
     },
 
