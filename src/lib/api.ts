@@ -7,10 +7,7 @@ const getHeaders = () => {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
-    const token = import.meta.env.VITE_API_PAT;
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
+    // PAT is reserved for GitHub Storage API only as requested
     return headers;
 };
 
