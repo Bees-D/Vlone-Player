@@ -15,12 +15,14 @@ import { usePlayer } from './context/PlayerContext';
 import { useApiStatus } from './hooks/useApiStatus';
 import {
     Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History,
-    ListMusic, Disc, Signal, WifiOff, Settings as SettingsIcon, Palette
+    ListMusic, Disc, Signal, WifiOff, Settings as SettingsIcon, Palette, ShieldCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { api } from './lib/api';
 import { formatDuration } from './lib/utils';
 import type { Era } from './lib/types';
+import VaultAuth from './components/VaultAuth';
+import { useDownloadManager } from './components/DownloadManager';
 
 const MainLayout: React.FC = () => {
     const [activeView, setActiveView] = useState('home');
@@ -334,6 +336,15 @@ const SettingsView: React.FC = () => {
                     <h2 className="text-3xl font-black italic tracking-tighter mb-2 uppercase text-gradient">Settings</h2>
                     <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Vlone Player v2.2.0 — Powered by 999 Archive</p>
                 </div>
+
+                {/* Cloud Sync & Auth */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary">
+                        <ShieldCheck className="w-5 h-5" />
+                        <h3 className="font-black italic uppercase tracking-tighter">Vault Connectivity</h3>
+                    </div>
+                    <VaultAuth />
+                </section>
 
                 {/* Appearance Settings */}
                 <section className="space-y-6">

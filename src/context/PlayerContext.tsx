@@ -3,6 +3,7 @@ import type { Song, Playlist, PlaybackMode } from '../lib/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { shuffleArray, formatDuration, downloadFile } from '../lib/utils';
 import { api } from '../lib/api';
+import { GitHubStorageService } from '../lib/githubStorage';
 import MediaPlayer from '../components/MediaPlayer';
 
 interface PlayerContextType {
@@ -39,6 +40,14 @@ interface PlayerContextType {
     totalListeningTime: number; // in minutes
     themeColor: string;
     setThemeColor: (color: string) => void;
+    // Cloud Share
+    createShare: (type: 'song' | 'playlist', data: any) => Promise<string>;
+    // Auth & Cloud
+    user: { username: string; vaultPath: string } | null;
+    login: (username: string, password: string) => Promise<void>;
+    logout: () => void;
+    cloudSync: boolean;
+    setCloudSync: (enabled: boolean) => void;
     // Equalizer
     eqEnabled: boolean;
     setEqEnabled: (enabled: boolean) => void;
@@ -65,6 +74,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [mostPlayed, setMostPlayed] = useLocalStorage<Record<string, { song: Song, count: number }>>('999_most_played', {});
     const [totalListeningTime, setTotalListeningTime] = useLocalStorage<number>('999_listening_time', 0);
     const [themeColor, setThemeColor] = useLocalStorage<string>('999_theme_color', '#ff004c');
+    const [user, setUser] = useLocalStorage<{ username: string; vaultPath: string } | null>('999_user', null);
+    const [cloudSync, setCloudSync] = useLocalStorage<boolean>('999_cloud_sync', true);
+
+    // Initialize storage service if PAT exists
+    const storageRef = useRef<GitHubStorageService | null>(
+        import.meta.env.VITE_API_PAT ? new GitHubStorageService(import.meta.env.VITE_API_PAT) : null
+    );
     const [eqEnabled, setEqEnabled] = useLocalStorage<boolean>('999_eq_enabled', false);
     const [eqGains, setEqGains] = useLocalStorage<number[]>('999_eq_gains', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10 bands
     const [eqLabelMode, setEqLabelMode] = useLocalStorage<'hz' | 'text'>('999_eq_label_mode', 'hz');
@@ -356,6 +372,31 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     };
 
+    // Auth Logic
+    const login = async (username: string, password: string) => {
+        if (!storageRef.current) throw new Error('API PAT not configured');
+        const vaultPath = await storageRef.current.getVaultPath(username, password);
+        const cloudData = await storageRef.current.getCloudPlaylists(vaultPath);
+
+        if (cloudData) {
+            setPlaylists(cloudData);
+        }
+
+        setUser({ username, vaultPath });
+    };
+
+    const logout = () => {
+        setUser(null);
+    };
+
+    // Auto-sync effect
+    useEffect(() => {
+        if (user && cloudSync && storageRef.current) {
+            storageRef.current.syncPlaylists(user.vaultPath, playlists)
+                .catch(err => console.error('Cloud Sync failed:', err));
+        }
+    }, [playlists, user, cloudSync]);
+
     // Playlist Management
     const createPlaylist = (name: string) => {
         const newPlaylist: Playlist = {
@@ -468,6 +509,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             themeColor,
             setThemeColor,
             downloadSong,
+            user,
+            login,
+            logout,
+            cloudSync,
+            setCloudSync,
+            createShare: async (type: 'song' | 'playlist', data: any) => {
+                if (!storageRef.current) throw new Error('Storage PAT not configured');
+                const id = Math.random().toString(36).substring(2, 11);
+                return await storageRef.current.createShareLink({ id, type, content: data });
+            },
             eqEnabled,
             setEqEnabled,
             eqGains,
