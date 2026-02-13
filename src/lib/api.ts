@@ -1,6 +1,44 @@
 import { Song, Category, Era, Stats, Folder, ProducerFilter } from './types';
 
 const BASE_URL = 'https://juicewrldapi.com/juicewrld';
+const TIMEOUT_MS = 10000; // 10s timeout to prevent hanging
+
+const getHeaders = () => {
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    const token = import.meta.env.VITE_API_PAT;
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+};
+
+const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...getHeaders(),
+                ...options.headers,
+            },
+            signal: controller.signal,
+        });
+        clearTimeout(id);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+    } catch (error: any) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out');
+        }
+        throw error;
+    }
+};
 
 export const api = {
     async getSongs(params?: { search?: string; category?: string; era?: string; producer?: string; page?: number }): Promise<{ data: Song[], total: number }> {
@@ -11,37 +49,37 @@ export const api = {
         if (params?.producer) query.append('producer', params.producer);
         if (params?.page) query.append('page', params.page.toString());
 
-        const res = await fetch(`${BASE_URL}/songs?${query.toString()}`);
+        const res = await fetchWithTimeout(`${BASE_URL}/songs?${query.toString()}`);
         return res.json();
     },
 
     async getRadio(): Promise<Song> {
-        const res = await fetch(`${BASE_URL}/radio`);
+        const res = await fetchWithTimeout(`${BASE_URL}/radio`);
         return res.json();
     },
 
     async getCategories(): Promise<Category[]> {
-        const res = await fetch(`${BASE_URL}/categories`);
+        const res = await fetchWithTimeout(`${BASE_URL}/categories`);
         return res.json();
     },
 
     async getEras(): Promise<Era[]> {
-        const res = await fetch(`${BASE_URL}/eras`);
+        const res = await fetchWithTimeout(`${BASE_URL}/eras`);
         return res.json();
     },
 
     async getStats(): Promise<Stats> {
-        const res = await fetch(`${BASE_URL}/stats`);
+        const res = await fetchWithTimeout(`${BASE_URL}/stats`);
         return res.json();
     },
 
     async browseFiles(path: string = '/'): Promise<Folder[]> {
-        const res = await fetch(`${BASE_URL}/files?path=${encodeURIComponent(path)}`);
+        const res = await fetchWithTimeout(`${BASE_URL}/files?path=${encodeURIComponent(path)}`);
         return res.json();
     },
 
     async getLyrics(songId: string): Promise<string> {
-        const res = await fetch(`${BASE_URL}/songs/${songId}/lyrics`);
+        const res = await fetchWithTimeout(`${BASE_URL}/songs/${songId}/lyrics`);
         const data = await res.json();
         return data.lyrics || "Lyrics not available for this track.";
     },
@@ -65,8 +103,7 @@ export const api = {
     },
 
     async getSongById(id: string): Promise<Song> {
-        const res = await fetch(`${BASE_URL}/songs/${id}`);
+        const res = await fetchWithTimeout(`${BASE_URL}/songs/${id}`);
         return res.json();
     }
 };
-
