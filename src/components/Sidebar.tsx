@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Music2, ListMusic, FolderTree, Disc, BarChart3, Radio, Settings, ImagePlus } from 'lucide-react';
+import { Home, Music2, ListMusic, FolderTree, Disc, BarChart3, Radio, Settings, ImagePlus, History } from 'lucide-react';
 import { clsx } from 'clsx';
 import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
@@ -19,6 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
         { id: 'library', label: 'Music Library', icon: Music2 },
         { id: 'playlists', label: 'Playlists', icon: ListMusic },
         { id: 'files', label: 'File Explorer', icon: FolderTree },
+        { id: 'history', label: 'History', icon: History },
         { id: 'radio', label: 'Radio 999', icon: Radio },
         { id: 'stats', label: 'Tracker / Stats', icon: BarChart3 },
         { id: 'covers', label: 'Custom Covers', icon: ImagePlus },

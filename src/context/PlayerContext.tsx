@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { Song, Playlist, PlaybackMode } from '../lib/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { shuffleArray } from '../lib/utils';
@@ -15,6 +15,7 @@ interface PlayerContextType {
     queue: Song[];
     currentIndex: number;
     playbackMode: PlaybackMode;
+    playbackSpeed: number;
     playSong: (song: Song, newQueue?: Song[]) => void;
     playByPath: (path: string, name: string) => void;
     togglePlay: () => void;
@@ -23,10 +24,17 @@ interface PlayerContextType {
     nextSong: () => void;
     prevSong: () => void;
     setPlaybackMode: (mode: PlaybackMode) => void;
+    setPlaybackSpeed: (speed: number) => void;
     createPlaylist: (name: string) => void;
     addToPlaylist: (playlistId: string, songId: string) => void;
     removeFromPlaylist: (playlistId: string, songId: string) => void;
+    deletePlaylist: (playlistId: string) => void;
+    renamePlaylist: (playlistId: string, newName: string) => void;
+    reorderQueue: (fromIndex: number, toIndex: number) => void;
+    removeFromQueue: (index: number) => void;
+    clearQueue: () => void;
     downloadSong: (song: Song) => void;
+    history: Song[];
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -41,21 +49,107 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [queue, setQueue] = useState<Song[]>([]);
     const [currentIndex, setCurrentIndex] = useState(-1);
     const [playbackMode, setPlaybackMode] = useLocalStorage<PlaybackMode>('999_playback_mode', 'normal');
+    const [playbackSpeed, setPlaybackSpeed] = useLocalStorage('999_playback_speed', 1);
+    const [history, setHistory] = useLocalStorage<Song[]>('999_history', []);
 
-    // For smart shuffle: keep track of original queue and injected radio songs
     const originalQueueRef = useRef<Song[]>([]);
     const radioSongsInjectedRef = useRef<Set<number>>(new Set());
+    const prevVolumeRef = useRef(0.7);
 
-    // Handle song end - move to next based on playback mode
+    // Add to history when song changes
+    useEffect(() => {
+        if (currentSong) {
+            setHistory(prev => {
+                const filtered = prev.filter(s => s.id !== currentSong.id);
+                return [currentSong, ...filtered].slice(0, 100); // Keep last 100
+            });
+        }
+    }, [currentSong]);
+
+    // Media Session API — OS-level controls
+    useEffect(() => {
+        if (!('mediaSession' in navigator) || !currentSong) return;
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentSong.title,
+            artist: currentSong.artist,
+            album: currentSong.album || currentSong.era || 'Juice WRLD',
+            artwork: currentSong.cover_url ? [
+                { src: currentSong.cover_url, sizes: '512x512', type: 'image/png' }
+            ] : []
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
+        navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
+        navigator.mediaSession.setActionHandler('previoustrack', () => prevSong());
+        navigator.mediaSession.setActionHandler('nexttrack', () => nextSong());
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+            if (details.seekTime !== undefined) setCurrentTime(details.seekTime);
+        });
+    }, [currentSong]);
+
+    // Update Media Session playback state
+    useEffect(() => {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        }
+    }, [isPlaying]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'ArrowRight':
+                    if (e.shiftKey) {
+                        nextSong();
+                    } else {
+                        seek(Math.min(currentTime + 10, duration));
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (e.shiftKey) {
+                        prevSong();
+                    } else {
+                        seek(Math.max(currentTime - 10, 0));
+                    }
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    setVolume(Math.min(volume + 0.05, 1));
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    setVolume(Math.max(volume - 0.05, 0));
+                    break;
+                case 'm':
+                case 'M':
+                    if (volume > 0) {
+                        prevVolumeRef.current = volume;
+                        setVolume(0);
+                    } else {
+                        setVolume(prevVolumeRef.current || 0.7);
+                    }
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentTime, duration, volume, isPlaying]);
+
     const handleSongEnd = async () => {
         if (playbackMode === 'radio') {
-            // Pure radio mode - always fetch a new random song
             await playRadioSong();
         } else if (playbackMode === 'smart-shuffle') {
-            // Smart shuffle - sometimes inject a radio song
             await nextSongSmartShuffle();
         } else {
-            // Normal or shuffle mode
             nextSong();
         }
     };
@@ -74,13 +168,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const nextSongSmartShuffle = async () => {
         if (queue.length === 0) return;
 
-        // 30% chance to inject a radio song
         const shouldInjectRadio = Math.random() < 0.3;
 
         if (shouldInjectRadio) {
             try {
                 const radioSong = await api.getRadio();
-                // Insert radio song into queue temporarily
                 const newQueue = [...queue];
                 const insertPosition = currentIndex + 1;
                 newQueue.splice(insertPosition, 0, radioSong);
@@ -93,7 +185,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setCurrentTime(0);
             } catch (error) {
                 console.error('Failed to fetch smart shuffle song:', error);
-                nextSong(); // Fallback to normal next
+                nextSong();
             }
         } else {
             nextSong();
@@ -106,8 +198,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } else {
             if (newQueue && newQueue.length > 0) {
                 originalQueueRef.current = [...newQueue];
-
-                // Apply shuffle if in shuffle mode
                 const queueToUse = playbackMode === 'shuffle' ? shuffleArray(newQueue) : newQueue;
                 setQueue(queueToUse);
                 setCurrentIndex(queueToUse.findIndex(s => s.id === song.id));
@@ -129,8 +219,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const playByPath = (path: string, name: string) => {
         const tempSong: Song = {
             id: `file-${path}`,
-            title: name,
-            artist: 'Local Explorer',
+            title: name.replace(/\.[^/.]+$/, ''),
+            artist: 'File Explorer',
             audio_url: `https://juicewrldapi.com/juicewrld/stream?path=${encodeURIComponent(path)}`,
             file_path: path,
             duration: 0
@@ -138,52 +228,78 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         playSong(tempSong);
     };
 
-    const nextSong = () => {
+    const nextSong = useCallback(() => {
         if (queue.length === 0) return;
-
         let nextIdx = currentIndex + 1;
-        if (nextIdx >= queue.length) {
-            nextIdx = 0; // Loop back to start
-        }
-
+        if (nextIdx >= queue.length) nextIdx = 0;
         setCurrentIndex(nextIdx);
         setCurrentSong(queue[nextIdx]);
         setIsPlaying(true);
         setCurrentTime(0);
-    };
+    }, [queue, currentIndex]);
 
-    const prevSong = () => {
+    const prevSong = useCallback(() => {
         if (queue.length === 0) return;
-
-        // If more than 3 seconds into the song, restart it
         if (currentTime > 3) {
             setCurrentTime(0);
             return;
         }
-
         let prevIdx = currentIndex - 1;
-        if (prevIdx < 0) {
-            prevIdx = queue.length - 1; // Loop to end
-        }
-
+        if (prevIdx < 0) prevIdx = queue.length - 1;
         setCurrentIndex(prevIdx);
         setCurrentSong(queue[prevIdx]);
         setIsPlaying(true);
         setCurrentTime(0);
-    };
+    }, [queue, currentIndex, currentTime]);
 
-    const togglePlay = () => {
-        setIsPlaying(!isPlaying);
-    };
+    const togglePlay = useCallback(() => {
+        setIsPlaying(prev => !prev);
+    }, []);
 
-    const seek = (time: number) => {
+    const seek = useCallback((time: number) => {
         setCurrentTime(time);
-    };
+    }, []);
 
     const handleVolumeChange = (newVolume: number) => {
         setVolume(newVolume);
     };
 
+    // Queue Management
+    const reorderQueue = (fromIndex: number, toIndex: number) => {
+        const newQueue = [...queue];
+        const [moved] = newQueue.splice(fromIndex, 1);
+        newQueue.splice(toIndex, 0, moved);
+        setQueue(newQueue);
+
+        // Update currentIndex if it was affected
+        if (fromIndex === currentIndex) {
+            setCurrentIndex(toIndex);
+        } else if (fromIndex < currentIndex && toIndex >= currentIndex) {
+            setCurrentIndex(currentIndex - 1);
+        } else if (fromIndex > currentIndex && toIndex <= currentIndex) {
+            setCurrentIndex(currentIndex + 1);
+        }
+    };
+
+    const removeFromQueue = (index: number) => {
+        if (index === currentIndex) return; // Can't remove currently playing
+        const newQueue = [...queue];
+        newQueue.splice(index, 1);
+        setQueue(newQueue);
+        if (index < currentIndex) {
+            setCurrentIndex(currentIndex - 1);
+        }
+    };
+
+    const clearQueue = () => {
+        const current = queue[currentIndex];
+        if (current) {
+            setQueue([current]);
+            setCurrentIndex(0);
+        }
+    };
+
+    // Playlist Management
     const createPlaylist = (name: string) => {
         const newPlaylist: Playlist = {
             id: crypto.randomUUID(),
@@ -211,10 +327,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }));
     };
 
+    const deletePlaylist = (playlistId: string) => {
+        setPlaylists(playlists.filter(p => p.id !== playlistId));
+    };
+
+    const renamePlaylist = (playlistId: string, newName: string) => {
+        setPlaylists(playlists.map(p => {
+            if (p.id === playlistId) {
+                return { ...p, name: newName };
+            }
+            return p;
+        }));
+    };
+
     const downloadSong = (song: Song) => {
         const url = song.audio_url || song.video_url;
         if (!url) return;
-
         const link = document.createElement('a');
         link.href = url;
         link.download = `${song.title} - ${song.artist}.${song.video_url ? 'mp4' : 'mp3'}`;
@@ -228,7 +356,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (playbackMode === 'shuffle' && originalQueueRef.current.length > 0) {
             const shuffled = shuffleArray(originalQueueRef.current);
             setQueue(shuffled);
-            // Find current song in new shuffled queue
             if (currentSong) {
                 const newIndex = shuffled.findIndex(s => s.id === currentSong.id);
                 setCurrentIndex(newIndex);
@@ -240,7 +367,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setCurrentIndex(newIndex);
             }
         } else if (playbackMode === 'radio') {
-            // Start radio mode
             playRadioSong();
         }
     }, [playbackMode]);
@@ -256,6 +382,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             queue,
             currentIndex,
             playbackMode,
+            playbackSpeed,
+            history,
             playSong,
             playByPath,
             togglePlay,
@@ -264,9 +392,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             nextSong,
             prevSong,
             setPlaybackMode,
+            setPlaybackSpeed,
             createPlaylist,
             addToPlaylist,
             removeFromPlaylist,
+            deletePlaylist,
+            renamePlaylist,
+            reorderQueue,
+            removeFromQueue,
+            clearQueue,
             downloadSong
         }}>
             <MediaPlayer
@@ -274,6 +408,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 isPlaying={isPlaying}
                 volume={volume}
                 currentTime={currentTime}
+                playbackSpeed={playbackSpeed}
                 onTimeUpdate={setCurrentTime}
                 onDurationChange={setDuration}
                 onEnded={handleSongEnd}

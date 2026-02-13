@@ -3,12 +3,14 @@ import { PlayerProvider } from './context/PlayerContext';
 import Sidebar from './components/Sidebar';
 import Player from './components/Player';
 import ImmersivePlayer from './components/ImmersivePlayer';
+import QueuePanel from './components/QueuePanel';
 import HomeView from './views/HomeView';
 import FileExplorerView from './views/FileExplorerView';
 import PlaylistsView from './views/PlaylistsView';
 import CoversView from './views/CoversView';
+import SongDetailView from './views/SongDetailView';
 import { usePlayer } from './context/PlayerContext';
-import { Languages, X, Activity, Music, Users, Clock, Menu } from 'lucide-react';
+import { Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History } from 'lucide-react';
 import { clsx } from 'clsx';
 import { api } from './lib/api';
 
@@ -17,9 +19,11 @@ const MainLayout: React.FC = () => {
     const [showLyrics, setShowLyrics] = useState(false);
     const [showImmersive, setShowImmersive] = useState(false);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+    const [showQueue, setShowQueue] = useState(false);
     const [lyrics, setLyrics] = useState<string>('');
     const [producerFilter, setProducerFilter] = useState<string | null>(null);
-    const { currentSong } = usePlayer();
+    const [songDetailId, setSongDetailId] = useState<string | null>(null);
+    const { currentSong, history } = usePlayer();
 
     useEffect(() => {
         if (currentSong) {
@@ -31,18 +35,34 @@ const MainLayout: React.FC = () => {
         }
     }, [currentSong]);
 
-    // Close mobile sidebar when navigating
     const handleSetActiveView = (view: string) => {
         setActiveView(view);
         setShowMobileSidebar(false);
+        setSongDetailId(null); // Clear song detail when navigating
     };
 
     const handleProducerClick = (producer: string) => {
         setProducerFilter(producer);
+        setSongDetailId(null);
         setActiveView('home');
     };
 
+    const handleSongClick = (songId: string) => {
+        setSongDetailId(songId);
+    };
+
     const renderView = () => {
+        // Song detail takes priority
+        if (songDetailId) {
+            return (
+                <SongDetailView
+                    songId={songDetailId}
+                    onBack={() => setSongDetailId(null)}
+                    onProducerClick={handleProducerClick}
+                />
+            );
+        }
+
         switch (activeView) {
             case 'home':
             case 'library':
@@ -51,6 +71,7 @@ const MainLayout: React.FC = () => {
                         producerFilter={producerFilter}
                         onProducerClick={handleProducerClick}
                         onClearProducer={() => setProducerFilter(null)}
+                        onSongClick={handleSongClick}
                     />
                 );
             case 'files':
@@ -65,10 +86,13 @@ const MainLayout: React.FC = () => {
                         producerFilter={null}
                         onProducerClick={handleProducerClick}
                         onClearProducer={() => setProducerFilter(null)}
+                        onSongClick={handleSongClick}
                     />
                 );
             case 'stats':
                 return <StatsDashboard />;
+            case 'history':
+                return <HistoryView onSongClick={handleSongClick} />;
             case 'settings':
                 return <SettingsView />;
             default:
@@ -77,6 +101,7 @@ const MainLayout: React.FC = () => {
                         producerFilter={producerFilter}
                         onProducerClick={handleProducerClick}
                         onClearProducer={() => setProducerFilter(null)}
+                        onSongClick={handleSongClick}
                     />
                 );
         }
@@ -100,7 +125,7 @@ const MainLayout: React.FC = () => {
                 />
             )}
 
-            {/* Sidebar - hidden on mobile, slide-in on toggle */}
+            {/* Sidebar */}
             <div className={clsx(
                 "md:block",
                 showMobileSidebar
@@ -121,6 +146,9 @@ const MainLayout: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Queue Panel */}
+            <QueuePanel isOpen={showQueue} onClose={() => setShowQueue(false)} />
 
             {/* Lyrics Panel Overlay */}
             <div className={clsx(
@@ -160,7 +188,12 @@ const MainLayout: React.FC = () => {
             </div>
 
             {/* Persistent Player */}
-            <Player onExpand={() => setShowImmersive(true)} onProducerClick={handleProducerClick} />
+            <Player
+                onExpand={() => setShowImmersive(true)}
+                onProducerClick={handleProducerClick}
+                onQueueToggle={() => setShowQueue(!showQueue)}
+                showQueue={showQueue}
+            />
 
             {/* Immersive Player Overlay */}
             <ImmersivePlayer isOpen={showImmersive} onClose={() => setShowImmersive(false)} />
@@ -181,7 +214,87 @@ const MainLayout: React.FC = () => {
     );
 };
 
+// History View
+const HistoryView: React.FC<{ onSongClick?: (id: string) => void }> = ({ onSongClick }) => {
+    const { history, playSong, currentSong, isPlaying } = usePlayer();
+    const { resolveCoverUrl } = useCustomCovers();
+
+    const formatDuration = (seconds: number) => {
+        if (!seconds) return '--:--';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    return (
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 pb-32">
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <History className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black italic tracking-tighter">LISTENING HISTORY</h2>
+                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{history.length} tracks played</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-1">
+                {history.map((song, idx) => {
+                    const coverUrl = resolveCoverUrl(song.cover_url, song);
+                    const isCurrent = currentSong?.id === song.id;
+
+                    return (
+                        <div
+                            key={`${song.id}-${idx}`}
+                            onClick={() => playSong(song)}
+                            className={clsx(
+                                "group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all hover:bg-white/5 border border-transparent",
+                                isCurrent && "bg-primary/10 border-primary/10"
+                            )}
+                        >
+                            <div className="w-8 text-center text-xs font-bold text-white/15">{idx + 1}</div>
+                            <div className="w-11 h-11 rounded-lg overflow-hidden bg-surface flex-shrink-0 relative">
+                                {coverUrl ? (
+                                    <img src={coverUrl} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className={clsx("font-bold text-sm truncate", isCurrent && "text-primary")}>{song.title}</h4>
+                                <p className="text-xs text-white/40 truncate">{song.artist}</p>
+                            </div>
+                            <div className="text-xs font-mono text-white/20">{formatDuration(song.duration)}</div>
+                        </div>
+                    );
+                })}
+                {history.length === 0 && (
+                    <div className="text-center py-20">
+                        <History className="w-16 h-16 text-white/5 mx-auto mb-4" />
+                        <p className="text-white/20 font-black italic uppercase">No Listening History</p>
+                        <p className="text-white/10 text-xs mt-2">Play a song to start tracking</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Settings View with Keyboard Shortcuts display
 const SettingsView: React.FC = () => {
+    const shortcuts = [
+        { keys: 'Space', action: 'Play / Pause' },
+        { keys: '←', action: 'Seek back 10s' },
+        { keys: '→', action: 'Seek forward 10s' },
+        { keys: 'Shift + ←', action: 'Previous track' },
+        { keys: 'Shift + →', action: 'Next track' },
+        { keys: '↑', action: 'Volume up' },
+        { keys: '↓', action: 'Volume down' },
+        { keys: 'M', action: 'Mute / Unmute' },
+    ];
+
     return (
         <div className="flex-1 p-8 md:p-12 overflow-y-auto pb-32">
             <div className="mb-12">
@@ -190,12 +303,38 @@ const SettingsView: React.FC = () => {
             </div>
 
             <div className="space-y-6 max-w-2xl">
+                {/* Keyboard Shortcuts */}
+                <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Keyboard className="w-5 h-5 text-primary" />
+                        <h3 className="font-black italic text-sm uppercase">Keyboard Shortcuts</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {shortcuts.map((s, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-2">
+                                <span className="text-sm text-white/40 font-medium">{s.action}</span>
+                                <div className="flex items-center gap-1">
+                                    {s.keys.split(' + ').map((key, kidx) => (
+                                        <React.Fragment key={kidx}>
+                                            {kidx > 0 && <span className="text-white/10 text-xs mx-1">+</span>}
+                                            <kbd className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white/60 min-w-[32px] text-center">
+                                                {key}
+                                            </kbd>
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* About */}
                 <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
                     <h3 className="font-black italic text-sm uppercase mb-6">About</h3>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
                             <span className="text-white/40 text-sm font-medium">Version</span>
-                            <span className="font-bold text-sm">1.0.0</span>
+                            <span className="font-bold text-sm">2.0.0 — Phase 2</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-white/40 text-sm font-medium">API</span>
@@ -210,6 +349,7 @@ const SettingsView: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Data */}
                 <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
                     <h3 className="font-black italic text-sm uppercase mb-6">Data</h3>
                     <div className="space-y-4">
@@ -224,6 +364,17 @@ const SettingsView: React.FC = () => {
                             className="w-full py-3 px-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 font-bold text-sm hover:bg-red-500/20 transition-colors"
                         >
                             Clear All Local Data
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm('Clear listening history?')) {
+                                    localStorage.removeItem('999_history');
+                                    window.location.reload();
+                                }
+                            }}
+                            className="w-full py-3 px-6 bg-white/5 border border-white/5 rounded-xl text-white/40 font-bold text-sm hover:bg-white/10 transition-colors"
+                        >
+                            Clear Listening History
                         </button>
                     </div>
                 </div>
@@ -294,6 +445,9 @@ const StatsDashboard: React.FC = () => {
         </div>
     );
 };
+
+// Need to import useCustomCovers for HistoryView
+import { useCustomCovers } from './hooks/useCustomCovers';
 
 const App: React.FC = () => {
     return (

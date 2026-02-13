@@ -7,6 +7,7 @@ interface MediaPlayerProps {
     isPlaying: boolean;
     volume: number;
     currentTime: number;
+    playbackSpeed?: number;
     onTimeUpdate: (time: number) => void;
     onDurationChange: (duration: number) => void;
     onEnded: () => void;
@@ -19,6 +20,7 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({
     isPlaying,
     volume,
     currentTime,
+    playbackSpeed = 1,
     onTimeUpdate,
     onDurationChange,
     onEnded,
@@ -31,8 +33,6 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({
 
     useEffect(() => {
         if (!song) return;
-
-        // Determine if this is a video file
         const mediaType = song.video_url ? 'video' : getMediaType(song.file_path);
         setIsVideo(mediaType === 'video');
     }, [song]);
@@ -51,15 +51,20 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({
     useEffect(() => {
         const mediaElement = isVideo ? videoRef.current : audioRef.current;
         if (!mediaElement) return;
-
         mediaElement.volume = volume;
     }, [volume, isVideo]);
+
+    // Playback speed
+    useEffect(() => {
+        const mediaElement = isVideo ? videoRef.current : audioRef.current;
+        if (!mediaElement) return;
+        mediaElement.playbackRate = playbackSpeed;
+    }, [playbackSpeed, isVideo]);
 
     useEffect(() => {
         const mediaElement = isVideo ? videoRef.current : audioRef.current;
         if (!mediaElement) return;
 
-        // Only seek if the difference is significant (> 1 second) to avoid conflicts
         if (Math.abs(mediaElement.currentTime - currentTime) > 1) {
             mediaElement.currentTime = currentTime;
         }
@@ -80,7 +85,7 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({
                     onEnded={onEnded}
                     onPlay={onPlay}
                     onPause={onPause}
-                    style={{ display: 'none' }} // Hidden by default, shown in video mode
+                    style={{ display: 'none' }}
                     preload="metadata"
                 />
             ) : (

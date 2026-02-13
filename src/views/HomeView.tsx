@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Play, Plus, Clock, MoreHorizontal, Radio, Disc, Download, Share2, User } from 'lucide-react';
+import { Search, Play, Plus, Clock, MoreHorizontal, Radio, Disc, Download, Share2, User, Info } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Song, Category, Era } from '../lib/types';
 import { usePlayer } from '../context/PlayerContext';
@@ -11,9 +11,10 @@ interface HomeViewProps {
     producerFilter?: string | null;
     onProducerClick?: (producer: string) => void;
     onClearProducer?: () => void;
+    onSongClick?: (songId: string) => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, onClearProducer }) => {
+const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, onClearProducer, onSongClick }) => {
     const [songs, setSongs] = useState<Song[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [eras, setEras] = useState<Era[]>([]);
@@ -256,6 +257,15 @@ const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, on
                                     >
                                         <Share2 className="w-4 h-4" />
                                     </button>
+                                    {onSongClick && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onSongClick(song.id); }}
+                                            className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white"
+                                            title="Details"
+                                        >
+                                            <Info className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
