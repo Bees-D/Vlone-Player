@@ -58,6 +58,33 @@ export interface Stats {
     total_duration: number;
     categories_count: number;
     eras_count: number;
+    total_streamed?: number;
+    active_users?: number;
+    total_users?: number;
+}
+
+export interface UserStats {
+    totalTime: number; // minutes
+    songCount: number;
+    mostListened: Array<{ id: string; count: number }>;
+    joinedAt: string;
+}
+
+export interface EQPreset {
+    id: string;
+    name: string;
+    gains: number[];
+    isCustom?: boolean;
+}
+
+export interface UserSettings {
+    theme: string;
+    avatarUrl?: string;
+    eqEnabled: boolean;
+    eqGains: number[];
+    playbackSpeed: number;
+    playbackMode: PlaybackMode;
+    cloudSync: boolean;
 }
 
 export interface Playlist {

@@ -47,7 +47,7 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
     const upcomingCount = queue.length - currentIndex - 1;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-24 bg-black/80 backdrop-blur-2xl border-t border-white/5 px-4 md:px-6 flex items-center justify-between z-50">
+        <div className="h-24 bg-black/80 backdrop-blur-2xl border-t border-white/5 px-4 md:px-6 flex items-center justify-between">
             {/* Song Info */}
             <div className="flex items-center gap-3 w-1/2 md:w-1/4 min-w-0">
                 <motion.div

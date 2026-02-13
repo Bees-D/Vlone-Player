@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import type { Song, Playlist, PlaybackMode } from '../lib/types';
+import type { Song, Playlist, PlaybackMode, EQPreset } from '../lib/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { shuffleArray, formatDuration, downloadFile } from '../lib/utils';
 import { api } from '../lib/api';
@@ -43,9 +43,10 @@ interface PlayerContextType {
     // Cloud Share
     createShare: (type: 'song' | 'playlist', data: any) => Promise<string>;
     // Auth & Cloud
-    user: { username: string; vaultPath: string } | null;
+    user: { username: string; vaultPath: string; avatarUrl?: string } | null;
     login: (username: string, password: string) => Promise<void>;
     logout: () => void;
+    updateUser: (data: Partial<{ username: string; avatarUrl: string }>) => void;
     cloudSync: boolean;
     setCloudSync: (enabled: boolean) => void;
     // Equalizer
@@ -53,6 +54,10 @@ interface PlayerContextType {
     setEqEnabled: (enabled: boolean) => void;
     eqGains: number[];
     setEqGain: (index: number, gain: number) => void;
+    eqPresets: EQPreset[];
+    saveEqPreset: (name: string) => void;
+    loadEqPreset: (id: string) => void;
+    deleteEqPreset: (id: string) => void;
     eqLabelMode: 'hz' | 'text';
     setEqLabelMode: (mode: 'hz' | 'text') => void;
 }
@@ -74,8 +79,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [mostPlayed, setMostPlayed] = useLocalStorage<Record<string, { song: Song, count: number }>>('999_most_played', {});
     const [totalListeningTime, setTotalListeningTime] = useLocalStorage<number>('999_listening_time', 0);
     const [themeColor, setThemeColor] = useLocalStorage<string>('999_theme_color', '#ff004c');
-    const [user, setUser] = useLocalStorage<{ username: string; vaultPath: string } | null>('999_user', null);
+    const [user, setUser] = useLocalStorage<{ username: string; vaultPath: string; avatarUrl?: string } | null>('999_user', null);
     const [cloudSync, setCloudSync] = useLocalStorage<boolean>('999_cloud_sync', true);
+    const [eqPresets, setEqPresets] = useLocalStorage<EQPreset[]>('999_eq_presets', [
+        { id: 'flat', name: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { id: 'bass-boost', name: 'Bass Boost', gains: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0] },
+        { id: 'vocal-boost', name: 'Vocal Boost', gains: [0, 0, 0, 2, 4, 5, 4, 2, 0, 0] },
+        { id: 'treble-boost', name: 'Treble Boost', gains: [0, 0, 0, 0, 0, 2, 4, 6, 7, 8] },
+    ]);
 
     // Initialize storage service if PAT exists
     const storageRef = useRef<GitHubStorageService | null>(
@@ -491,6 +502,29 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [playbackMode]);
 
+    const updateUser = (data: Partial<{ username: string; avatarUrl: string }>) => {
+        if (!user) return;
+        setUser({ ...user, ...data });
+    };
+
+    const saveEqPreset = (name: string) => {
+        const id = name.toLowerCase().replace(/\s+/g, '-');
+        const newPreset: EQPreset = { id, name, gains: [...eqGains], isCustom: true };
+        setEqPresets(prev => [...prev.filter(p => p.id !== id), newPreset]);
+    };
+
+    const loadEqPreset = (id: string) => {
+        const preset = eqPresets.find(p => p.id === id);
+        if (preset) {
+            setEqGains(preset.gains);
+            setEqEnabled(true);
+        }
+    };
+
+    const deleteEqPreset = (id: string) => {
+        setEqPresets(prev => prev.filter(p => p.id !== id));
+    };
+
     return (
         <PlayerContext.Provider value={{
             currentSong,
@@ -529,6 +563,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             user,
             login,
             logout,
+            updateUser,
             cloudSync,
             setCloudSync,
             createShare: async (type: 'song' | 'playlist', data: any) => {
@@ -544,6 +579,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 newGains[index] = gain;
                 setEqGains(newGains);
             },
+            eqPresets,
+            saveEqPreset,
+            loadEqPreset,
+            deleteEqPreset,
             eqLabelMode,
             setEqLabelMode
         }}>

@@ -29,7 +29,7 @@ const LocalVaultView: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto p-8 pb-32">
+        <div className="p-8 pb-12">
             <div className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">

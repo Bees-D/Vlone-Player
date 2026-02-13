@@ -26,7 +26,7 @@ h3,
 .heading-bespoke {
   letter-spacing: -0.04em;
   line-height: 1.1;
-  @apply font-black italic uppercase italic;
+  @apply font-black italic uppercase;
 }
 
 .body-relaxed {
@@ -47,7 +47,7 @@ h3,
 }
 
 .bespoke-button {
-  @apply bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20 transition-all duration-300 active:scale-95 hover:scale-[1.03] hover:shadow-primary/30;
+  @apply bg-gradient-to-br from-primary to-primary-dark shadow-xl transition-all duration-300 active:scale-95 hover:scale-[1.03];
   box-shadow: var(--shadow-glow), 0 10px 15px -3px rgba(255, 0, 76, 0.2);
 }
 

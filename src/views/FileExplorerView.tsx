@@ -190,7 +190,7 @@ const FileExplorerView: React.FC = () => {
         selectedItems.forEach(path => {
             const item = items.find(i => i.path === path);
             if (item && item.type === 'file') {
-                const fileUrl = `https://juicewrldapi.com/juicewrld/stream?path=${encodeURIComponent(item.path)}`;
+                const fileUrl = `${api.BASE_URL}/files/download/?path=${encodeURIComponent(item.path)}`;
                 downloadFile(fileUrl, item.name);
             }
         });
@@ -390,7 +390,7 @@ const FileExplorerView: React.FC = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            const fileUrl = `https://juicewrldapi.com/juicewrld/stream?path=${encodeURIComponent(item.path)}`;
+                                                            const fileUrl = `${api.BASE_URL}/files/download/?path=${encodeURIComponent(item.path)}`;
                                                             downloadFile(fileUrl, item.name);
                                                         }}
                                                         className="p-2 hover:bg-white/5 rounded-lg text-white/40 hover:text-white"
@@ -477,7 +477,7 @@ const FileExplorerView: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        const fileUrl = `https://juicewrldapi.com/juicewrld/stream?path=${encodeURIComponent(item.path)}`;
+                                                        const fileUrl = `${api.BASE_URL}/files/download/?path=${encodeURIComponent(item.path)}`;
                                                         downloadFile(fileUrl, item.name);
                                                     }}
                                                     className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-lg text-white/30 hover:text-white transition-all"

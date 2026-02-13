@@ -1,6 +1,6 @@
 import { Song, Category, Era, Stats, Folder, ProducerFilter } from './types';
 
-export const BASE_URL = 'https://juicewrldapi.com';
+export const BASE_URL = import.meta.env.DEV ? '/api_proxy' : 'https://juicewrldapi.com';
 const TIMEOUT_MS = 10000; // 10s timeout to prevent hanging
 
 const getHeaders = () => {
@@ -94,7 +94,8 @@ export const api = {
 
         if (params?.page) query.append('page', params.page.toString());
 
-        const res = await fetchWithTimeout(`${BASE_URL}/songs/?${query.toString()}`);
+        const url = query.toString() ? `${BASE_URL}/songs/?${query.toString()}` : `${BASE_URL}/songs/`;
+        const res = await fetchWithTimeout(url);
         const json = await res.json();
 
         // Handle pagination response (DRF standard: { results: [], count: ... })
@@ -138,34 +139,47 @@ export const api = {
     },
 
     async getLyrics(songId: string): Promise<string> {
-        const res = await fetchWithTimeout(`${BASE_URL}/songs/${songId}`);
+        const res = await fetchWithTimeout(`${BASE_URL}/songs/${songId}/`);
         const data = await res.json();
         return data.lyrics || "Lyrics not available for this track.";
     },
 
     async getProducers(): Promise<ProducerFilter[]> {
-        // Fetch first 3 pages to get a better distribution of producers
-        const pages = [1, 2, 3];
         const producerMap = new Map<string, number>();
+        const INITIAL_PAGES = 3;
+        const MAX_PAGES = 10;
 
-        await Promise.all(pages.map(async (page) => {
-            try {
-                const { data } = await this.getSongs({ page });
-                data.forEach(song => {
-                    if (song.producer) {
-                        // Split by common separators if multiple producers
-                        const producers = song.producer.split(/[,&/]/).map(p => p.trim());
-                        producers.forEach(p => {
-                            if (p && p.length > 2) { // Filtering out tiny names like 'DP' or 'JE' if too short or noise
-                                producerMap.set(p, (producerMap.get(p) || 0) + 1);
-                            }
-                        });
-                    }
-                });
-            } catch (e) {
-                console.warn(`Failed to fetch page ${page} for producers`);
-            }
-        }));
+        try {
+            // Fetch first page to see total count
+            const firstPage = await this.getSongs({ page: 1 });
+            const totalSongs = firstPage.total;
+            const songsPerPage = firstPage.data.length || 50;
+            const totalPagesAvailable = Math.ceil(totalSongs / songsPerPage);
+
+            // Determine how many pages to fetch (up to MAX_PAGES)
+            const pagesToFetch = Math.min(totalPagesAvailable, MAX_PAGES);
+            const pageArray = Array.from({ length: pagesToFetch }, (_, i) => i + 1);
+
+            await Promise.all(pageArray.map(async (page) => {
+                try {
+                    const { data } = page === 1 ? firstPage : await this.getSongs({ page });
+                    data.forEach(song => {
+                        if (song.producer) {
+                            const producers = song.producer.split(/[,&/]/).map(p => p.trim());
+                            producers.forEach(p => {
+                                if (p && p.length > 2) {
+                                    producerMap.set(p, (producerMap.get(p) || 0) + 1);
+                                }
+                            });
+                        }
+                    });
+                } catch (e) {
+                    console.warn(`Failed to fetch page ${page} for producers`);
+                }
+            }));
+        } catch (e) {
+            console.error("Failed to initialize producer fetch:", e);
+        }
 
         return Array.from(producerMap.entries()).map(([producer, count]) => ({
             producer,
@@ -175,7 +189,7 @@ export const api = {
     BASE_URL, // Fixed: added comma
 
     async getSongById(id: string): Promise<Song> {
-        const res = await fetchWithTimeout(`${BASE_URL}/songs/${id}`);
+        const res = await fetchWithTimeout(`${BASE_URL}/songs/${id}/`);
         const json = await res.json();
         return mapApiSong(json);
     }
