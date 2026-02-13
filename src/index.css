@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: dark;
+  --color-primary: #ff004c;
+  --color-primary-light: #ff4d8d;
+  --color-primary-dark: #b30035;
+  --color-accent: #a855f7;
 }
 
 body {

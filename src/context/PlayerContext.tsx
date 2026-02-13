@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { Song, Playlist, PlaybackMode } from '../lib/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { shuffleArray } from '../lib/utils';
+import { shuffleArray, formatDuration, downloadFile } from '../lib/utils';
 import { api } from '../lib/api';
 import MediaPlayer from '../components/MediaPlayer';
 
@@ -35,6 +35,17 @@ interface PlayerContextType {
     clearQueue: () => void;
     downloadSong: (song: Song) => void;
     history: Song[];
+    mostPlayed: Record<string, { song: Song, count: number }>;
+    totalListeningTime: number; // in minutes
+    themeColor: string;
+    setThemeColor: (color: string) => void;
+    // Equalizer
+    eqEnabled: boolean;
+    setEqEnabled: (enabled: boolean) => void;
+    eqGains: number[];
+    setEqGain: (index: number, gain: number) => void;
+    eqLabelMode: 'hz' | 'text';
+    setEqLabelMode: (mode: 'hz' | 'text') => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -51,20 +62,66 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [playbackMode, setPlaybackMode] = useLocalStorage<PlaybackMode>('999_playback_mode', 'normal');
     const [playbackSpeed, setPlaybackSpeed] = useLocalStorage('999_playback_speed', 1);
     const [history, setHistory] = useLocalStorage<Song[]>('999_history', []);
+    const [mostPlayed, setMostPlayed] = useLocalStorage<Record<string, { song: Song, count: number }>>('999_most_played', {});
+    const [totalListeningTime, setTotalListeningTime] = useLocalStorage<number>('999_listening_time', 0);
+    const [themeColor, setThemeColor] = useLocalStorage<string>('999_theme_color', '#ff004c');
+    const [eqEnabled, setEqEnabled] = useLocalStorage<boolean>('999_eq_enabled', false);
+    const [eqGains, setEqGains] = useLocalStorage<number[]>('999_eq_gains', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); // 10 bands
+    const [eqLabelMode, setEqLabelMode] = useLocalStorage<'hz' | 'text'>('999_eq_label_mode', 'hz');
 
     const originalQueueRef = useRef<Song[]>([]);
     const radioSongsInjectedRef = useRef<Set<number>>(new Set());
     const prevVolumeRef = useRef(0.7);
 
-    // Add to history when song changes
+    // Add to stats when song changes
     useEffect(() => {
         if (currentSong) {
             setHistory(prev => {
                 const filtered = prev.filter(s => s.id !== currentSong.id);
                 return [currentSong, ...filtered].slice(0, 100); // Keep last 100
             });
+
+            setMostPlayed(prev => {
+                const existing = prev[currentSong.id] || { song: currentSong, count: 0 };
+                return {
+                    ...prev,
+                    [currentSong.id]: { song: currentSong, count: existing.count + 1 }
+                };
+            });
         }
     }, [currentSong]);
+
+    // Track listening time
+    useEffect(() => {
+        let interval: any;
+        if (isPlaying && currentSong) {
+            interval = setInterval(() => {
+                setTotalListeningTime(prev => prev + (1 / 60)); // Add 1 second in minutes
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isPlaying, currentSong]);
+
+    // Update CSS variables for theme
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty('--color-primary', themeColor);
+
+        // Calculate lighter and darker versions for primary
+        // Simple hex manipulation for demo purposes, could use a proper library
+        const lighten = (col: string, amt: number) => {
+            let usePound = false;
+            if (col[0] === "#") { col = col.slice(1); usePound = true; }
+            const num = parseInt(col, 16);
+            let r = (num >> 16) + amt; if (r > 255) r = 255; else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amt; if (b > 255) b = 255; else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amt; if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+        };
+
+        root.style.setProperty('--color-primary-light', lighten(themeColor, 40));
+        root.style.setProperty('--color-primary-dark', lighten(themeColor, -40));
+    }, [themeColor]);
 
     // Media Session API — OS-level controls
     useEffect(() => {
@@ -221,7 +278,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             id: `file-${path}`,
             title: name.replace(/\.[^/.]+$/, ''),
             artist: 'File Explorer',
-            audio_url: `https://juicewrldapi.com/juicewrld/stream?path=${encodeURIComponent(path)}`,
+            audio_url: `${api.BASE_URL}/files/download/?path=${encodeURIComponent(path)}`,
             file_path: path,
             duration: 0
         };
@@ -343,12 +400,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const downloadSong = (song: Song) => {
         const url = song.audio_url || song.video_url;
         if (!url) return;
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${song.title} - ${song.artist}.${song.video_url ? 'mp4' : 'mp3'}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const filename = `${song.title} - ${song.artist}.${song.video_url ? 'mp4' : 'mp3'}`;
+        downloadFile(url, filename).catch(err => {
+            console.error('Download failed:', err);
+            // Fallback to simple link if blob fetch fails (e.g. CORS)
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
     };
 
     // Update queue when playback mode changes
@@ -401,7 +463,21 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             reorderQueue,
             removeFromQueue,
             clearQueue,
-            downloadSong
+            totalListeningTime,
+            mostPlayed,
+            themeColor,
+            setThemeColor,
+            downloadSong,
+            eqEnabled,
+            setEqEnabled,
+            eqGains,
+            setEqGain: (index: number, gain: number) => {
+                const newGains = [...eqGains];
+                newGains[index] = gain;
+                setEqGains(newGains);
+            },
+            eqLabelMode,
+            setEqLabelMode
         }}>
             <MediaPlayer
                 song={currentSong}

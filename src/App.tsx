@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerProvider } from './context/PlayerContext';
 import Sidebar from './components/Sidebar';
 import Player from './components/Player';
@@ -9,11 +10,17 @@ import FileExplorerView from './views/FileExplorerView';
 import PlaylistsView from './views/PlaylistsView';
 import CoversView from './views/CoversView';
 import SongDetailView from './views/SongDetailView';
+import LocalVaultView from './views/LocalVaultView';
 import { usePlayer } from './context/PlayerContext';
 import { useApiStatus } from './hooks/useApiStatus';
-import { Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History, ListMusic, Disc, Signal, WifiOff } from 'lucide-react';
+import {
+    Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History,
+    ListMusic, Disc, Signal, WifiOff, Settings as SettingsIcon, Palette
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { api } from './lib/api';
+import { formatDuration } from './lib/utils';
+import type { Era } from './lib/types';
 
 const MainLayout: React.FC = () => {
     const [activeView, setActiveView] = useState('home');
@@ -75,6 +82,8 @@ const MainLayout: React.FC = () => {
                         onSongClick={handleSongClick}
                     />
                 );
+            case 'vault':
+                return <LocalVaultView />;
             case 'files':
                 return <FileExplorerView />;
             case 'playlists':
@@ -220,12 +229,6 @@ const HistoryView: React.FC<{ onSongClick?: (id: string) => void }> = ({ onSongC
     const { history, playSong, currentSong, isPlaying } = usePlayer();
     const { resolveCoverUrl } = useCustomCovers();
 
-    const formatDuration = (seconds: number) => {
-        if (!seconds) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     return (
         <div className="flex-1 overflow-y-auto p-6 md:p-8 pb-32">
@@ -284,7 +287,35 @@ const HistoryView: React.FC<{ onSongClick?: (id: string) => void }> = ({ onSongC
 };
 
 // Settings View with Keyboard Shortcuts display
+// Settings View with Keyboard Shortcuts display
 const SettingsView: React.FC = () => {
+    const {
+        themeColor, setThemeColor,
+        eqEnabled, setEqEnabled, eqGains, setEqGain, eqLabelMode, setEqLabelMode
+    } = usePlayer();
+    const [pat, setPat] = useState(import.meta.env.VITE_API_PAT || '');
+
+    const themes = [
+        { name: 'Dark', color: '#0a0a0c' },
+        { name: 'Light', color: '#f8f9fa' },
+        { name: '999', color: '#ff004c' },
+        { name: 'Midnight', color: '#0f172a' },
+        { name: 'Ocean', color: '#075985' },
+    ];
+
+    const bands = [
+        { hz: '31', text: 'Sub' },
+        { hz: '62', text: 'Bass' },
+        { hz: '125', text: 'L-Mid' },
+        { hz: '250', text: 'Mid' },
+        { hz: '500', text: 'Mid' },
+        { hz: '1k', text: 'H-Mid' },
+        { hz: '2k', text: 'Pres' },
+        { hz: '4k', text: 'Treb' },
+        { hz: '8k', text: 'High' },
+        { hz: '16k', text: 'Air' },
+    ];
+
     const shortcuts = [
         { keys: 'Space', action: 'Play / Pause' },
         { keys: '←', action: 'Seek back 10s' },
@@ -297,88 +328,194 @@ const SettingsView: React.FC = () => {
     ];
 
     return (
-        <div className="flex-1 p-8 md:p-12 overflow-y-auto pb-32">
-            <div className="mb-12">
-                <h2 className="text-3xl font-black italic tracking-tighter mb-2">SETTINGS</h2>
-                <p className="text-white/40 font-bold uppercase tracking-[0.2em] text-[10px]">Configure your Vlone Player 999 experience</p>
-            </div>
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 pb-32">
+            <div className="max-w-4xl mx-auto space-y-12">
+                <div>
+                    <h2 className="text-3xl font-black italic tracking-tighter mb-2 uppercase text-gradient">Settings</h2>
+                    <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Vlone Player v2.2.0 — Powered by 999 Archive</p>
+                </div>
 
-            <div className="space-y-6 max-w-2xl">
-                {/* Keyboard Shortcuts */}
-                <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Keyboard className="w-5 h-5 text-primary" />
-                        <h3 className="font-black italic text-sm uppercase">Keyboard Shortcuts</h3>
+                {/* Appearance Settings */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary">
+                        <Palette className="w-5 h-5" />
+                        <h3 className="font-black italic uppercase tracking-tighter">Appearance & Theme</h3>
                     </div>
-                    <div className="space-y-3">
-                        {shortcuts.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-2">
-                                <span className="text-sm text-white/40 font-medium">{s.action}</span>
-                                <div className="flex items-center gap-1">
-                                    {s.keys.split(' + ').map((key, kidx) => (
-                                        <React.Fragment key={kidx}>
-                                            {kidx > 0 && <span className="text-white/10 text-xs mx-1">+</span>}
-                                            <kbd className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white/60 min-w-[32px] text-center">
-                                                {key}
-                                            </kbd>
-                                        </React.Fragment>
-                                    ))}
+                    <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8 space-y-8">
+                        <div>
+                            <p className="text-sm font-bold mb-4 uppercase tracking-widest text-white/60">Theme Selection</p>
+                            <div className="flex flex-wrap gap-4">
+                                {themes.map((t) => (
+                                    <button
+                                        key={t.name}
+                                        onClick={() => setThemeColor(t.color)}
+                                        className={clsx(
+                                            "flex items-center gap-3 px-4 py-2 rounded-xl border transition-all hover:scale-105",
+                                            themeColor === t.color ? "border-primary bg-primary/10 text-white" : "border-white/5 bg-white/5 text-white/40 hover:border-white/20"
+                                        )}
+                                    >
+                                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.color, border: '1px solid rgba(255,255,255,0.1)' }} />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">{t.name}</span>
+                                    </button>
+                                ))}
+                                <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-white/5 bg-white/5">
+                                    <input
+                                        type="color"
+                                        value={themeColor}
+                                        onChange={(e) => setThemeColor(e.target.value)}
+                                        className="w-5 h-5 bg-transparent border-none cursor-pointer"
+                                    />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Custom</span>
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                {/* About */}
-                <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
-                    <h3 className="font-black italic text-sm uppercase mb-6">About</h3>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/40 text-sm font-medium">Version</span>
-                            <span className="font-bold text-sm">2.0.0 — Phase 2</span>
+                {/* Equalizer Settings */}
+                <section className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-primary">
+                            <Activity className="w-5 h-5" />
+                            <h3 className="font-black italic uppercase tracking-tighter">Acoustic Equalizer</h3>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/40 text-sm font-medium">API</span>
-                            <span className="font-bold text-sm">juicewrldapi.com</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-white/40 text-sm font-medium">Storage Used</span>
-                            <span className="font-bold text-sm">
-                                {(new Blob([JSON.stringify(localStorage)]).size / 1024).toFixed(1)} KB
-                            </span>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setEqLabelMode(eqLabelMode === 'hz' ? 'text' : 'hz')}
+                                className="text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-primary transition-colors"
+                            >
+                                Mode: {eqLabelMode.toUpperCase()}
+                            </button>
+                            <button
+                                onClick={() => setEqEnabled(!eqEnabled)}
+                                className={clsx(
+                                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                                    eqEnabled ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-white/5 text-white/20 hover:text-white"
+                                )}
+                            >
+                                {eqEnabled ? 'Enabled' : 'Disabled'}
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                {/* Data */}
-                <div className="bg-[#121217] border border-white/5 rounded-3xl p-8">
-                    <h3 className="font-black italic text-sm uppercase mb-6">Data</h3>
-                    <div className="space-y-4">
-                        <button
-                            onClick={() => {
-                                if (confirm('Clear all playlists and custom covers? This cannot be undone.')) {
-                                    localStorage.removeItem('999_playlists');
-                                    localStorage.removeItem('999_custom_covers');
-                                    window.location.reload();
-                                }
-                            }}
-                            className="w-full py-3 px-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 font-bold text-sm hover:bg-red-500/20 transition-colors"
-                        >
-                            Clear All Local Data
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (confirm('Clear listening history?')) {
-                                    localStorage.removeItem('999_history');
-                                    window.location.reload();
-                                }
-                            }}
-                            className="w-full py-3 px-6 bg-white/5 border border-white/5 rounded-xl text-white/40 font-bold text-sm hover:bg-white/10 transition-colors"
-                        >
-                            Clear Listening History
-                        </button>
+                    <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8">
+                        <div className="flex justify-between items-end h-48 gap-2 md:gap-4 overflow-x-auto pb-4">
+                            {bands.map((band, i) => (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-4 min-w-[40px]">
+                                    <div className="flex-1 relative w-full flex justify-center group">
+                                        <input
+                                            type="range"
+                                            min="-12"
+                                            max="12"
+                                            step="0.5"
+                                            value={eqGains[i]}
+                                            onChange={(e) => setEqGain(i, parseFloat(e.target.value))}
+                                            className="appearance-none w-32 h-1 bg-white/5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-ns-resize accent-primary"
+                                        />
+                                        <div className="absolute top-0 text-[8px] font-bold text-white/20 group-hover:text-primary transition-colors">
+                                            {eqGains[i] > 0 ? `+${eqGains[i]}` : eqGains[i]}
+                                        </div>
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-tighter text-white/30 truncate w-full text-center">
+                                        {eqLabelMode === 'hz' ? band.hz : band.text}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-8 flex justify-end gap-3">
+                            <button
+                                onClick={() => Array.from({ length: 10 }).forEach((_, i) => setEqGain(i, 0))}
+                                className="text-[10px] font-bold uppercase tracking-widest text-white/20 hover:text-white transition-colors"
+                            >
+                                Reset Bands
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
+
+                {/* Keyboard Shortcuts */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary">
+                        <Keyboard className="w-5 h-5" />
+                        <h3 className="font-black italic uppercase tracking-tighter">Keyboard Control</h3>
+                    </div>
+                    <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                            {shortcuts.map((s, idx) => (
+                                <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5">
+                                    <span className="text-xs text-white/40 font-medium uppercase tracking-wider">{s.action}</span>
+                                    <div className="flex items-center gap-1">
+                                        {s.keys.split(' + ').map((key, kidx) => (
+                                            <React.Fragment key={kidx}>
+                                                {kidx > 0 && <span className="text-white/10 text-[10px] mx-1">+</span>}
+                                                <kbd className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-white/60 min-w-[24px] text-center">
+                                                    {key}
+                                                </kbd>
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* API & Data */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3 text-primary">
+                        <Activity className="w-5 h-5" />
+                        <h3 className="font-black italic uppercase tracking-tighter">API & Data Management</h3>
+                    </div>
+                    <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8 space-y-8">
+                        <div>
+                            <p className="text-sm font-bold mb-2 uppercase tracking-widest text-white/60">Personal Access Token (PAT)</p>
+                            <p className="text-[10px] text-white/30 mb-4 uppercase font-bold">Required for high-bandwidth streaming and global discovery scans.</p>
+                            <div className="flex gap-3">
+                                <input
+                                    type="password"
+                                    value={pat}
+                                    onChange={(e) => setPat(e.target.value)}
+                                    placeholder="Enter VITE_API_PAT..."
+                                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:border-primary outline-none transition-colors"
+                                />
+                                <button className="bg-white text-black font-black px-6 py-2 rounded-xl hover:scale-105 transition-transform text-xs uppercase">SAVE</button>
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-white/5">
+                            <h4 className="text-xs font-black uppercase text-white/40 mb-4 tracking-widest">Storage & Cache</h4>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Clear all playlists and custom covers?')) {
+                                            localStorage.removeItem('999_playlists');
+                                            localStorage.removeItem('999_custom_covers');
+                                            window.location.reload();
+                                        }
+                                    }}
+                                    className="w-full flex justify-between items-center py-4 px-6 bg-red-500/5 border border-red-500/10 rounded-2xl text-red-400 group hover:bg-red-500/10 transition-colors"
+                                >
+                                    <span className="text-xs font-black uppercase tracking-widest">Wipe Local Datastore</span>
+                                    <span className="text-[10px] opacity-40 group-hover:opacity-100 italic transition-opacity">IRREVERSIBLE</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Clear playback statistics and metrics?')) {
+                                            localStorage.removeItem('999_history');
+                                            localStorage.removeItem('999_most_played');
+                                            localStorage.removeItem('999_listening_time');
+                                            window.location.reload();
+                                        }
+                                    }}
+                                    className="w-full flex justify-between items-center py-4 px-6 bg-white/5 border border-white/5 rounded-2xl text-white/40 hover:bg-white/10 transition-colors"
+                                >
+                                    <span className="text-xs font-black uppercase tracking-widest">Reset Analytics</span>
+                                    <span className="text-[10px] italic">Clear History & Stats</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     );
@@ -386,18 +523,23 @@ const SettingsView: React.FC = () => {
 
 const StatsDashboard: React.FC = () => {
     const { stats, isOnline, latency } = useApiStatus();
+    const { totalListeningTime, mostPlayed, playSong } = usePlayer();
+    const [eras, setEras] = useState<Era[]>([]);
 
-    const formatDuration = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        return `${hours.toLocaleString()} Hours`;
-    };
+    useEffect(() => {
+        api.getEras().then(setEras);
+    }, []);
 
     const statItems = [
         { label: 'Total Tracks', value: stats?.total_songs?.toLocaleString() || '...', icon: Music, color: 'text-primary' },
+        { label: 'Listening Time', value: `${Math.floor(totalListeningTime)} Min`, icon: Clock, color: 'text-blue-400' },
         { label: 'Categories', value: stats?.categories_count?.toString() || '...', icon: ListMusic, color: 'text-green-500' },
-        { label: 'Eras', value: stats?.eras_count?.toString() || '...', icon: Disc, color: 'text-accent' },
-        { label: 'Total Playtime', value: stats ? formatDuration(stats.total_duration) : '...', icon: Clock, color: 'text-blue-400' },
+        { label: 'Eras Discovery', value: stats?.eras_count?.toString() || '...', icon: Disc, color: 'text-accent' },
     ];
+
+    const topTracks = Object.values(mostPlayed)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
 
     return (
         <div className="flex-1 p-8 md:p-12 overflow-y-auto pb-32">
@@ -435,24 +577,59 @@ const StatsDashboard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8 min-h-[400px]">
+                {/* Era Bar Chart */}
+                <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8">
                     <h3 className="text-lg font-black italic mb-8 uppercase text-white/60 tracking-widest">Era Distribution</h3>
-                    <div className="flex items-center justify-center h-64 text-white/20 font-bold text-xs uppercase tracking-widest">
-                        Chart data loading from API...
+                    <div className="space-y-4">
+                        {eras.slice(0, 6).map((era, idx) => {
+                            // Mock distribution since API doesn't provide per-era count in stats
+                            const width = 100 - (idx * 12);
+                            return (
+                                <div key={era.name} className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                        <span className="text-white/60">{era.name}</span>
+                                        <span className="text-primary">{width}%</span>
+                                    </div>
+                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${width}%` }}
+                                            transition={{ delay: idx * 0.1, duration: 1 }}
+                                            className="h-full bg-gradient-to-r from-primary to-accent"
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-[#121217] to-primary/10 border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col justify-center">
-                    <Activity className="w-12 h-12 text-primary mb-8 animate-pulse" />
-                    <h3 className="text-2xl font-black italic mb-4 uppercase">Live Sync Active</h3>
-                    <p className="text-white/50 font-medium leading-relaxed">
-                        Connected to Juice WRLD API v1. All metadata is synchronized in real-time.
-                    </p>
-                    <div className="mt-8 pt-8 border-t border-white/5 w-full">
-                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-white/40">
-                            <span>Active Users</span>
-                            <span className="text-white">1 (You)</span>
-                        </div>
+                {/* Most Played */}
+                <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8">
+                    <h3 className="text-lg font-black italic mb-8 uppercase text-white/60 tracking-widest">Most Played Tracks</h3>
+                    <div className="space-y-2">
+                        {topTracks.map((item, idx) => (
+                            <div
+                                key={item.song.id}
+                                onClick={() => playSong(item.song)}
+                                className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-all border border-transparent hover:border-white/5"
+                            >
+                                <div className="w-8 text-center text-xs font-black text-white/10 group-hover:text-primary">0{idx + 1}</div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-sm truncate uppercase italic tracking-tighter">{item.song.title}</h4>
+                                    <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">{item.song.artist}</p>
+                                </div>
+                                <div className="text-[10px] font-black bg-primary/20 text-primary px-2 py-1 rounded-lg">
+                                    {item.count} PLAYS
+                                </div>
+                            </div>
+                        ))}
+                        {topTracks.length === 0 && (
+                            <div className="h-48 flex flex-col items-center justify-center text-center opacity-20">
+                                <Activity className="w-12 h-12 mb-4" />
+                                <p className="text-xs font-black uppercase tracking-widest">Awaiting playback data...</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

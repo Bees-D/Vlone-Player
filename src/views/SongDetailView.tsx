@@ -7,6 +7,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
 import { api } from '../lib/api';
 import { clsx } from 'clsx';
+import { formatDuration } from '../lib/utils';
 import type { Song } from '../lib/types';
 
 interface SongDetailViewProps {
@@ -69,12 +70,6 @@ const SongDetailView: React.FC<SongDetailViewProps> = ({ songId, onBack, onProdu
     const coverUrl = resolveCoverUrl(song.cover_url, song);
     const isCurrent = currentSong?.id === song.id;
 
-    const formatDuration = (seconds: number) => {
-        if (!seconds) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     const metadata = [
         { label: 'Artist', value: song.artist, icon: User },

@@ -6,6 +6,7 @@ import {
 import { motion } from 'framer-motion';
 import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
+import { formatDuration } from '../lib/utils';
 import { clsx } from 'clsx';
 import type { PlaybackMode } from '../lib/types';
 
@@ -24,12 +25,6 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
     const { resolveCoverUrl } = useCustomCovers();
     const [showSpeedPicker, setShowSpeedPicker] = useState(false);
 
-    const formatTime = (time: number) => {
-        if (!time || isNaN(time)) return '0:00';
-        const mins = Math.floor(time / 60);
-        const secs = Math.floor(time % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     const playbackModes: Array<{ mode: PlaybackMode; icon: React.ElementType; label: string }> = [
         { mode: 'normal', icon: List, label: 'Normal' },
@@ -140,7 +135,7 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
                 </div>
 
                 <div className="w-full flex items-center gap-3">
-                    <span className="text-[10px] text-white/40 font-mono w-8">{formatTime(currentTime)}</span>
+                    <span className="text-[10px] text-white/40 font-mono w-8">{formatDuration(currentTime)}</span>
                     <div className="flex-1 h-1 bg-white/10 rounded-full relative group cursor-pointer overflow-hidden">
                         <input
                             type="range"
@@ -155,7 +150,7 @@ const Player: React.FC<PlayerProps> = ({ onExpand, onProducerClick, onQueueToggl
                             style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                         />
                     </div>
-                    <span className="text-[10px] text-white/40 font-mono w-8">{formatTime(duration)}</span>
+                    <span className="text-[10px] text-white/40 font-mono w-8">{formatDuration(duration)}</span>
                 </div>
 
                 {/* Mode indicators */}

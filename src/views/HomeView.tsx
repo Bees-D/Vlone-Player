@@ -4,7 +4,8 @@ import { api } from '../lib/api';
 import type { Song, Category, Era } from '../lib/types';
 import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
-import { downloadFile, generateShareUrl } from '../lib/utils';
+import { downloadFile, generateShareUrl, formatDuration } from '../lib/utils';
+import { useApiStatus } from '../hooks/useApiStatus';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -20,6 +21,7 @@ const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, on
     const [eras, setEras] = useState<Era[]>([]);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const { stats } = useApiStatus();
     const { playSong, currentSong, isPlaying, playlists, addToPlaylist, setPlaybackMode, downloadSong } = usePlayer();
     const { resolveCoverUrl } = useCustomCovers();
 
@@ -41,12 +43,6 @@ const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, on
         fetchData();
     }, [search, selectedCategory, producerFilter]);
 
-    const formatDuration = (seconds: number) => {
-        if (!seconds) return '--:--';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     const handleShareSong = (song: Song, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -86,7 +82,7 @@ const HomeView: React.FC<HomeViewProps> = ({ producerFilter, onProducerClick, on
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
-                        placeholder="Search 2,742+ tracks..."
+                        placeholder={stats?.total_songs ? `Search ${stats.total_songs.toLocaleString()}+ tracks...` : "Search tracks..."}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all font-medium"

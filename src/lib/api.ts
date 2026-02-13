@@ -1,6 +1,6 @@
 import { Song, Category, Era, Stats, Folder, ProducerFilter } from './types';
 
-const BASE_URL = 'https://juicewrldapi.com';
+export const BASE_URL = 'https://juicewrldapi.com';
 const TIMEOUT_MS = 10000; // 10s timeout to prevent hanging
 
 const getHeaders = () => {
@@ -144,21 +144,35 @@ export const api = {
     },
 
     async getProducers(): Promise<ProducerFilter[]> {
-        // No dedicated endpoint, client aggregation from first page
-        const { data } = await this.getSongs({ page: 1 });
+        // Fetch first 3 pages to get a better distribution of producers
+        const pages = [1, 2, 3];
         const producerMap = new Map<string, number>();
 
-        data.forEach(song => {
-            if (song.producer) {
-                producerMap.set(song.producer, (producerMap.get(song.producer) || 0) + 1);
+        await Promise.all(pages.map(async (page) => {
+            try {
+                const { data } = await this.getSongs({ page });
+                data.forEach(song => {
+                    if (song.producer) {
+                        // Split by common separators if multiple producers
+                        const producers = song.producer.split(/[,&/]/).map(p => p.trim());
+                        producers.forEach(p => {
+                            if (p && p.length > 2) { // Filtering out tiny names like 'DP' or 'JE' if too short or noise
+                                producerMap.set(p, (producerMap.get(p) || 0) + 1);
+                            }
+                        });
+                    }
+                });
+            } catch (e) {
+                console.warn(`Failed to fetch page ${page} for producers`);
             }
-        });
+        }));
 
         return Array.from(producerMap.entries()).map(([producer, count]) => ({
             producer,
             count
         })).sort((a, b) => b.count - a.count);
     },
+    BASE_URL, // Fixed: added comma
 
     async getSongById(id: string): Promise<Song> {
         const res = await fetchWithTimeout(`${BASE_URL}/songs/${id}`);

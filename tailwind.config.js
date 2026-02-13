@@ -13,11 +13,11 @@ export default {
                 background: '#0a0a0c',
                 surface: '#121217',
                 primary: {
-                    light: '#ff4d8d',
-                    DEFAULT: '#ff004c', // Signature Juice Pink
-                    dark: '#b30035',
+                    light: 'var(--color-primary-light)',
+                    DEFAULT: 'var(--color-primary)',
+                    dark: 'var(--color-primary-dark)',
                 },
-                accent: '#a855f7', // 999 Purple
+                accent: 'var(--color-accent)',
             },
             animation: {
                 'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

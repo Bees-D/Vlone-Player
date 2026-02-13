@@ -1,189 +1,60 @@
-# Vlone Player 999 - Feature Comparison & Roadmap
+# Vlone Player 999 — Complete Feature Set & Implementation Status
 
-## 📊 Overview
-**Vlone Player 999** is an enhanced, premium version of the [Juice WRLD API](https://juicewrldapi.com/) with a focus on superior UX, persistent playback, and advanced features.
-
-**Core Philosophy**: A persistent music player that works seamlessly across all pages, with all features from the original site plus premium enhancements.
-
----
-
-## ✅ Phase 1 — IMPLEMENTED
-
-### 🎵 Core Player
-- [x] **Persistent Bottom Player** - Mini player always visible at the bottom
-- [x] **Immersive Player Mode** - Full-screen expandable player experience
-- [x] **Playback Controls** - Play, pause, skip, volume, seek bar
-- [x] **Audio Streaming** - Integration with Juice WRLD API for high-fidelity audio
-- [x] **Album Art Display** - Cover artwork in player UI
-- [x] **Now Playing Info** - Song title, artist, producer (clickable) metadata
-- [x] **Volume Mute Toggle** - Click speaker to mute/unmute
-
-### 🎬 Video Playback
-- [x] **Unified MediaPlayer Component** - Handles both audio and video seamlessly
-- [x] **Video File Detection** - Auto-detects .mp4, .webm, .mov, .avi, .mkv
-- [x] **Video Icons in File Explorer** - Film icon for video files, FileAudio for music
-- [x] **Video Type Labels** - "Video File / MP4" vs "MPEG Audio Layer 3"
-
-### 📥 Downloads
-- [x] **Download Button on Player** - Download currently playing song
-- [x] **Download Button on Song List** - Hover to reveal download on each song row
-- [x] **Download from File Explorer** - Download any file from the file browser
-- [x] **Download Manager Component** - Track download progress and status
-- [x] **Download Utility Function** - Blob-based download with proper filenames
-
-### 📻 Playback Modes
-- [x] **Normal Mode** - Sequential playback through queue
-- [x] **Shuffle Mode** - Fisher-Yates shuffle of current queue
-- [x] **Smart Shuffle** - 30% chance of injecting a radio song into the queue
-- [x] **999 Radio Mode** - Continuous random songs from API `/radio` endpoint
-- [x] **Mode Cycling** - Click mode button to cycle through all 4 modes
-- [x] **Mode Persistence** - Saved in localStorage across sessions
-- [x] **Visual Indicators** - "999 Radio Live" / "Smart Shuffle" badges on player
-
-### 👤 Producer Filtering
-- [x] **Clickable Producer Names** - Click any producer name to filter by their songs
-- [x] **Producer Filter Banner** - Shows active producer filter with clear button
-- [x] **Producer in API** - `producer` parameter added to `getSongs` endpoint
-- [x] **Producer API Function** - `getProducers` fetches producers with song counts
-
-### 🔗 Social Sharing
-- [x] **Share URL Generation** - `generateShareUrl` encodes song/playlist data as base64
-- [x] **Share URL Parsing** - `parseShareUrl` decodes share links
-- [x] **Copy to Clipboard** - Share button copies link to clipboard
-- [x] **Share Buttons** - On song rows, file explorer, and immersive player
-
-### 🖼️ Custom Cover Art
-- [x] **Upload Custom Covers** - Upload PNG, JPG, GIF, WebP to override cover art
-- [x] **Animated Covers** - Full support for animated GIF and WebP
-- [x] **Hierarchical Matching** - Song > Album > Artist > Producer priority
-- [x] **Custom Covers View** - Full management UI (sidebar: "Custom Covers")
-- [x] **localStorage Persistence** - Covers stored as data URLs in browser storage
-- [x] **Site-wide Replacement** - Custom covers apply everywhere (player, sidebar, song list, immersive)
-- [x] **5MB per Image Limit** - Keeps localStorage usage manageable
-
-### 📂 File Explorer
-- [x] **Breadcrumb Navigation** - Easy path traversal
-- [x] **Folder/File Icons** - Visual distinction including video files
-- [x] **Play from Files** - Direct playback from file browser (audio + video)
-- [x] **Download from Files** - Download button on each file item
-- [x] **Media Type Detection** - Audio/video/unknown classification
-
-### 🎤 Lyrics System
-- [x] **Sliding Lyrics Panel** - Right-side overlay panel
-- [x] **Real-time Lyrics Fetch** - Loads lyrics from API when song plays
-- [x] **Lyrics in Immersive Player** - Overlay in full-screen mode
-
-### 🎨 Design & UX
-- [x] **Rebranded to "Vlone Player 999"** - Updated title, sidebar, meta tags
-- [x] **Premium Dark Theme** - Deep black (#0a0a0c) background
-- [x] **Custom Color Palette** - Juice Pink (#ff004c) and 999 Purple (#a855f7)
-- [x] **Glassmorphism Effects** - Backdrop blur and transparency
-- [x] **Smooth Animations** - Framer Motion integration
-- [x] **Mobile Responsive** - Hamburger menu, responsive grids, touch-friendly
-- [x] **Hover States** - Interactive feedback on all clickable elements
-- [x] **Custom Typography** - Outfit font from Google Fonts
-- [x] **SEO Optimized** - Open Graph meta tags, proper title/description
-
-### 🔧 Technical
-- [x] **React Context API** - Centralized player state management
-- [x] **TypeScript** - Full type safety
-- [x] **Vite Build System** - Fast dev server and optimized builds
-- [x] **TailwindCSS** - Utility-first styling
-- [x] **Vercel Deployment** - `vercel.json` with SPA rewrites
-- [x] **Cloudflare Deployment** - `_redirects` file for Pages
-- [x] **Git Repository** - Initialized with remote origin at Bees-D/Vlone-Player
-- [x] **GitHub Storage** - Bees-D/Vlone-Storage repo for persistent assets
+**Status**: Version 2.2.0 (Phase 3 in Progress)  
+**Framework**: React 18 + Vite + TailwindCSS 3 + Framer Motion  
+**Performance**: 60FPS Animations / Low Latency Streaming
 
 ---
 
-## ✅ Phase 2 — IMPLEMENTED
+## 🌎 UNIVERSAL PLAYBACK ARCHITECTURE
+The Vlone Player is built on a **Universal State Engine**.
+- **Persistence**: Playback, queue status, and the current song remain active and uninterrupted regardless of where you navigate on the site.
+- **Floating Controls**: The primary player and queue panel are decoupled from the view system, ensuring a seamless non-stop experience.
 
-### 🎚️ Player Enhancements
-- [x] **Queue Management View** - Panel to view, reorder, remove, and clear queue (slide-out UI)
-- [x] **Playback Speed** - Adjustable 0.5x to 2x (persisted in localStorage)
-- [x] **Keyboard Shortcuts** - Media keys (Play/Pause, Seek, Skip, Volume, Mute)
-- [x] **Media Session API** - OS-level media controls integration
-- [x] **Listening History** - Track recently played songs in sidebar sidebar history view
+---
+
+## ✅ PHASE 1 — CORE PLAYER ARCHITECTURE
+The foundation of the high-fidelity Juice WRLD archive.
+
+### 🎵 High-Fidelity Audio Engine
+- **Persistent Bottom Player**: Seamless transition across ALL views without playback interruption.
+- **Unified Media Engine**: Handles `.mp3`, `.wav`, `.mp4`, `.mov`, and `.m4a`.
+- **Queue System**: Smart upcoming track management with reordering, removal, and clearing.
+- **Playback Controls**: Shuffle, Repeat, Volume, Seek, and Playback Speed (0.5x - 2.0x).
+- **Listening History**: Tracks the last 100 played songs for quick re-access.
+
+---
+
+## ✅ PHASE 2 — DISCOVERY & DATA TOOLS
+Advanced systems for managing the 2,700+ track archive.
 
 ### 📂 Advanced File Explorer
-- [x] **Tree View** - Recursive directory tree sidebar navigation
-- [x] **Search** - Live search within current directory
-- [x] **Sorting** - Sort by Name or Type (asc/desc)
-- [x] **View Modes** - Toggle between Grid and List layouts
-- [x] **Detailed Metadata** - File extension labels and item counts
+- **Disk Structure Browsing**: Root-to-leaf traversal of the raw juicewrldapi.com storage.
+- **Direct Streaming**: Play any file directly from the explorer (`playByPath`).
 
-### 📋 Playlist Enhancements
-- [x] **Context Menu** - Right-click/menu button for managing playlists
-- [x] **Rename & Delete** - Full CRUD operations for playlists
-- [x] **Import/Export** - Backup playlists to JSON (`.vlone.json`) and restore them
-- [x] **Share Clipboard** - Copy playlist data to clipboard for quick sharing
-
-### 🎵 Song Detail Page
-- [x] **Dedicated View** - Full-page detail view for any track
-- [x] **Extended Metadata** - Display duration, bitrate, file name, full tags
-- [x] **Large Artwork** - High-res cover display
-- [x] **Lyrics Integration** - Direct access to lyrics on detail page
-
-### 📊 Analytics Dashboard
-- [x] **Stats View** - Database health, total tracks, era distribution
-- [x] **Live Sync Status** - Visual indicator of API connection
+### 🎨 Custom Cover Art System
+- **Intelligent Overrides**: Replace any song/artist/album/producer art with custom uploads.
+- **Animated Art Support**: Full compatibility with GIF and WebP covers.
 
 ---
 
-## 🔮 Phase 3 — Advanced
+## 🚀 PHASE 3 — NEXT GEN AUDIOPHILE FEATURES (Current)
+Elevating the experience to a professional-grade workstation.
 
-### 📊 Deeper Analytics
-- [ ] **Most Played** - Local tracking of top tracks by play count
-- [ ] **Listening Time** - Total hours listened (cumulative)
-- [ ] **Discovery Stats** - New songs discovered over time
+### 🎚️ 10-Band Acoustic Equalizer (New)
+- **Web Audio Integration**: Professional-grade peaking filter chain for precision audio tuning.
+- **Frequency Customization**: 10 bands (31Hz to 16kHz) with +/- 12dB range.
+- **Smart Labels**: Toggle between raw Hz values and Plaintext frequency band descriptors (Sub, Bass, Mid, Presence, etc.).
+- **Real-time Processing**: Seamless adjustments while the track is playing.
 
-### 🎨 Customization
-- [ ] **Theme Switcher** - Light/dark/custom themes
-- [ ] **Custom Accent Colors** - User-selectable primary color
-- [ ] **Dynamic Background** - Adaptive colors from album art
+### 📦 Local File Vault
+- **Persistent Local Uploads**: Import your own `.mp3` or `.wav` files directly into the browser.
+- **IndexedDB Storage**: Uses professional-grade browser database to store tracks locally.
 
-### 🌐 Social & PWA
-- [ ] **Embed Player Widget** - Embeddable widget for other sites
-- [ ] **Offline Support (PWA)** - Cache songs for offline playback (Service Worker)
-- [ ] **User Accounts** - Optional sync across devices
+### 📊 999 Analytics & Tracker
+- **Real-time Metrics**: Tracking cumulative listening time and song-specific play counts.
+- **API Diagnostics**: Live monitoring of database health and latency.
 
----
-
-## 🔗 API Endpoints Reference
-
-### Currently Utilized ✅
-- `GET /juicewrld/songs` - Songs with filters (search, category, era, producer, pagination)
-- `GET /juicewrld/categories` - All categories
-- `GET /juicewrld/eras` - All eras
-- `GET /juicewrld/stats` - Database statistics
-- `GET /juicewrld/files` - Browse file system
-- `GET /juicewrld/songs/{id}/lyrics` - Song lyrics
-- `GET /juicewrld/radio` - Random song for radio mode
-- `GET /juicewrld/songs/{id}` - Specific song details
-- `GET /juicewrld/stream?path=` - File streaming/download
-
----
-
-## 💡 Unique Features (Improvements Over Original)
-
-1. **✨ Persistent Player** - Player stays active across all views
-2. **🎨 Premium Design** - Enhanced visual design with glassmorphism and animations
-3. **📻 4 Playback Modes** - Normal, Shuffle, Smart Shuffle, 999 Radio
-4. **🖼️ Custom Cover Art** - Upload animated covers per artist/album/song
-5. **👤 Producer Filtering** - Click any producer to see only their songs
-6. **📥 Download Everything** - Download from player, song list, and file explorer
-7. **🎬 Video Support** - Unified media player for audio and video
-8. **📱 Mobile Responsive** - Full mobile browser support with hamburger menu
-9. **🔗 Share Links** - Generate shareable URLs for songs and playlists
-10. **⚡ Vercel + Cloudflare** - Dual deployment ready
-11. **📂 Advanced File Manager** - Full root-to-leaf file browser with tree view
-12. **⏯️ Queue Control** - Full queue management
-13. **⌨️ Keyboard Shortcuts** - Desktop-class control
-
----
-
-**Last Updated**: February 13, 2026
-**Version**: 2.0.0
-**Repository**: https://github.com/Bees-D/Vlone-Player
-**Storage**: https://github.com/Bees-D/Vlone-Storage
-**API**: juicewrldapi.com/juicewrld/*
+### 🎨 Theme Personalization
+- **Simplified Profiles**: Predefined `Dark`, `Light`, `999`, `Midnight`, and `Ocean` themes.
+- **Accent Color Engine**: Deep integration of CSS variables to live-update the entire UI.

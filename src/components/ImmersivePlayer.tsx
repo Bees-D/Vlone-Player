@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
-import { generateShareUrl } from '../lib/utils';
+import { generateShareUrl, formatDuration } from '../lib/utils';
 import { clsx } from 'clsx';
 import { api } from '../lib/api';
 import type { PlaybackMode } from '../lib/types';
@@ -39,12 +39,6 @@ const ImmersivePlayer: React.FC<ImmersivePlayerProps> = ({ isOpen, onClose }) =>
 
     const coverUrl = resolveCoverUrl(currentSong.cover_url, currentSong);
 
-    const formatTime = (time: number) => {
-        if (!time || isNaN(time)) return '0:00';
-        const mins = Math.floor(time / 60);
-        const secs = Math.floor(time % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     const cyclePlaybackMode = () => {
         const modes: PlaybackMode[] = ['normal', 'shuffle', 'smart-shuffle', 'radio'];
@@ -190,8 +184,8 @@ const ImmersivePlayer: React.FC<ImmersivePlayerProps> = ({ isOpen, onClose }) =>
                                         />
                                     </div>
                                     <div className="flex justify-between text-sm font-mono font-bold text-white/20">
-                                        <span>{formatTime(currentTime)}</span>
-                                        <span>{formatTime(duration)}</span>
+                                        <span>{formatDuration(currentTime)}</span>
+                                        <span>{formatDuration(duration)}</span>
                                     </div>
                                 </div>
 

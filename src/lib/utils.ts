@@ -89,11 +89,23 @@ export const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 /**
+ * Format seconds into m:ss
+ */
+export const formatDuration = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
  * Generate shareable URL for a playlist or song
  */
 export const generateShareUrl = (type: 'playlist' | 'song', data: any): string => {
     const baseUrl = window.location.origin;
-    const encoded = btoa(JSON.stringify({ type, data }));
+    const payload = JSON.stringify({ type, data });
+    // Use URL safe base64
+    const encoded = btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     return `${baseUrl}/share/${encoded}`;
 };
 
