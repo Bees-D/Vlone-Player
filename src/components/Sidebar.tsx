@@ -1,9 +1,11 @@
-import React from 'react';
-import { Home, Music2, ListMusic, FolderTree, Disc, BarChart3, Radio, Settings, ImagePlus, History } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Home, Music2, ListMusic, FolderTree, Disc, BarChart3, Radio, Settings, ImagePlus, History, Signal, WifiOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import { usePlayer } from '../context/PlayerContext';
 import { useCustomCovers } from '../hooks/useCustomCovers';
+import { useApiStatus } from '../hooks/useApiStatus';
 import { motion } from 'framer-motion';
+import { api } from '../lib/api';
 
 interface SidebarProps {
     activeView: string;
@@ -13,6 +15,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
     const { currentSong, isPlaying, playbackMode } = usePlayer();
     const { resolveCoverUrl } = useCustomCovers();
+    const { isOnline, latency, stats } = useApiStatus();
 
     const menuItems = [
         { id: 'home', label: 'Home', icon: Home },
@@ -79,22 +82,43 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
                     </motion.div>
                 )}
 
-                {/* Playback Mode Indicator */}
-                {playbackMode !== 'normal' && (
+                {/* Playback Mode & Status Indicator */}
+                <div className="flex gap-2">
+                    {/* Mode Indicator */}
+                    {playbackMode !== 'normal' && (
+                        <div className={clsx(
+                            "flex-1 border rounded-xl px-3 py-2 flex items-center gap-2",
+                            playbackMode === 'radio' ? "bg-primary/10 border-primary/20" :
+                                playbackMode === 'smart-shuffle' ? "bg-accent/10 border-accent/20" :
+                                    "bg-white/5 border-white/10"
+                        )}>
+                            <Radio className={clsx("w-3 h-3 flex-shrink-0", playbackMode === 'radio' ? "text-primary" : "text-accent")} />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-white/60 truncate">
+                                {playbackMode === 'radio' ? 'Radio' :
+                                    playbackMode === 'smart-shuffle' ? 'Smart' :
+                                        'Shuffle'}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* API Status */}
                     <div className={clsx(
-                        "border rounded-xl px-3 py-2 flex items-center gap-2",
-                        playbackMode === 'radio' ? "bg-primary/10 border-primary/20" :
-                            playbackMode === 'smart-shuffle' ? "bg-accent/10 border-accent/20" :
-                                "bg-white/5 border-white/10"
+                        "flex-1 border rounded-xl px-3 py-2 flex items-center gap-2",
+                        isOnline ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
                     )}>
-                        <Radio className={clsx("w-3 h-3", playbackMode === 'radio' ? "text-primary" : "text-accent")} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
-                            {playbackMode === 'radio' ? '999 Radio Active' :
-                                playbackMode === 'smart-shuffle' ? 'Smart Shuffle On' :
-                                    'Shuffle On'}
+                        {isOnline ? (
+                            <Signal className="w-3 h-3 text-green-500" />
+                        ) : (
+                            <WifiOff className="w-3 h-3 text-red-500" />
+                        )}
+                        <span className={clsx(
+                            "text-[9px] font-black uppercase tracking-widest truncate",
+                            isOnline ? "text-green-500" : "text-red-500"
+                        )}>
+                            {isOnline ? `${latency}ms` : 'Offline'}
                         </span>
                     </div>
-                )}
+                </div>
 
                 <div className="bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 rounded-2xl p-4">
                     <p className="text-xs font-bold text-white/60 mb-2">NOW TRACKING</p>
@@ -103,7 +127,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
                             <Disc className="w-6 h-6 text-primary animate-spin-slow" />
                         </div>
                         <div>
-                            <p className="text-sm font-bold">2,742 Songs</p>
+                            <p className="text-sm font-bold">
+                                {stats?.total_songs ? stats.total_songs.toLocaleString() : '...'} Songs
+                            </p>
                             <p className="text-[10px] text-white/40">Real-time DB Sync</p>
                         </div>
                     </div>

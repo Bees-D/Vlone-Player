@@ -10,7 +10,8 @@ import PlaylistsView from './views/PlaylistsView';
 import CoversView from './views/CoversView';
 import SongDetailView from './views/SongDetailView';
 import { usePlayer } from './context/PlayerContext';
-import { Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History } from 'lucide-react';
+import { useApiStatus } from './hooks/useApiStatus';
+import { Languages, X, Activity, Music, Users, Clock, Menu, Keyboard, History, ListMusic, Disc, Signal, WifiOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import { api } from './lib/api';
 
@@ -384,22 +385,47 @@ const SettingsView: React.FC = () => {
 };
 
 const StatsDashboard: React.FC = () => {
-    const stats = [
-        { label: 'Total Tracks', value: '2,742', icon: Music, color: 'text-primary' },
-        { label: 'Active Sessions', value: '184', icon: Activity, color: 'text-green-500' },
-        { label: 'Unique Artists', value: '124', icon: Users, color: 'text-accent' },
-        { label: 'Uptime', value: '99.9%', icon: Clock, color: 'text-blue-400' },
+    const { stats, isOnline, latency } = useApiStatus();
+
+    const formatDuration = (seconds: number) => {
+        const hours = Math.floor(seconds / 3600);
+        return `${hours.toLocaleString()} Hours`;
+    };
+
+    const statItems = [
+        { label: 'Total Tracks', value: stats?.total_songs?.toLocaleString() || '...', icon: Music, color: 'text-primary' },
+        { label: 'Categories', value: stats?.categories_count?.toString() || '...', icon: ListMusic, color: 'text-green-500' },
+        { label: 'Eras', value: stats?.eras_count?.toString() || '...', icon: Disc, color: 'text-accent' },
+        { label: 'Total Playtime', value: stats ? formatDuration(stats.total_duration) : '...', icon: Clock, color: 'text-blue-400' },
     ];
 
     return (
         <div className="flex-1 p-8 md:p-12 overflow-y-auto pb-32">
             <div className="mb-12">
                 <h2 className="text-3xl font-black italic tracking-tighter mb-2">999 TRACKER</h2>
-                <p className="text-white/40 font-bold uppercase tracking-[0.2em] text-[10px]">Database Health & Discography Insights</p>
+                <div className="flex items-center gap-4">
+                    <p className="text-white/40 font-bold uppercase tracking-[0.2em] text-[10px]">Database Health & Discography Insights</p>
+                    <div className={clsx(
+                        "flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest",
+                        isOnline ? "bg-green-500/10 border-green-500/20 text-green-500" : "bg-red-500/10 border-red-500/20 text-red-500"
+                    )}>
+                        {isOnline ? (
+                            <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                API Online ({latency}ms)
+                            </>
+                        ) : (
+                            <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                API Offline
+                            </>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
-                {stats.map((stat, idx) => (
+                {statItems.map((stat, idx) => (
                     <div key={idx} className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8 hover:border-white/20 transition-all group">
                         <stat.icon className={clsx("w-8 h-8 mb-6 group-hover:scale-110 transition-transform", stat.color)} />
                         <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">{stat.label}</p>
@@ -411,23 +437,8 @@ const StatsDashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 <div className="bg-[#121217] border border-white/5 rounded-3xl p-6 md:p-8 min-h-[400px]">
                     <h3 className="text-lg font-black italic mb-8 uppercase text-white/60 tracking-widest">Era Distribution</h3>
-                    <div className="space-y-6">
-                        {[
-                            { era: 'Goodbye & Good Riddance', percent: 85, color: 'bg-primary' },
-                            { era: 'Death Race for Love', percent: 72, color: 'bg-accent' },
-                            { era: 'Legends Never Die', percent: 94, color: 'bg-blue-500' },
-                            { era: 'Unreleased / Leaks', percent: 100, color: 'bg-white/20' },
-                        ].map((item, idx) => (
-                            <div key={idx} className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                                    <span>{item.era}</span>
-                                    <span className="text-white/40">{item.percent}%</span>
-                                </div>
-                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                    <div className={clsx("h-full rounded-full", item.color)} style={{ width: `${item.percent}%` }} />
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex items-center justify-center h-64 text-white/20 font-bold text-xs uppercase tracking-widest">
+                        Chart data loading from API...
                     </div>
                 </div>
 
@@ -435,11 +446,14 @@ const StatsDashboard: React.FC = () => {
                     <Activity className="w-12 h-12 text-primary mb-8 animate-pulse" />
                     <h3 className="text-2xl font-black italic mb-4 uppercase">Live Sync Active</h3>
                     <p className="text-white/50 font-medium leading-relaxed">
-                        Our tracker monitors the Juice WRLD API in real-time. New leaks, updated metadata, and high-fidelity masters are automatically indexed as they appear on the main repository.
+                        Connected to Juice WRLD API v1. All metadata is synchronized in real-time.
                     </p>
-                    <button className="mt-8 self-start bg-white text-black font-black px-8 py-4 rounded-2xl hover:scale-105 transition-transform active:scale-95">
-                        REFRESH DATABASE
-                    </button>
+                    <div className="mt-8 pt-8 border-t border-white/5 w-full">
+                        <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-white/40">
+                            <span>Active Users</span>
+                            <span className="text-white">1 (You)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
