@@ -10,14 +10,38 @@ export const useApiStatus = () => {
     const checkStatus = async () => {
         const start = performance.now();
         try {
+            // Primary check: Stats
             const data = await api.getStats();
             const end = performance.now();
             setLatency(Math.round(end - start));
             setIsOnline(true);
             setStats(data);
         } catch (err) {
-            setIsOnline(false);
-            setLatency(0);
+            console.warn('Stats endpoint failed, trying fallback...', err);
+            try {
+                // Fallback check: Songs
+                const songsRes = await api.getSongs({ page: 1 });
+                if (songsRes && songsRes.data) {
+                    const end = performance.now();
+                    setLatency(Math.round(end - start));
+                    setIsOnline(true);
+                    // We can't set full stats, but we're online
+                    // Maybe mock basic stats from result?
+                    setStats({
+                        total_songs: songsRes.total || 0,
+                        total_duration: 0,
+                        categories_count: 0,
+                        eras_count: 0
+                    });
+                } else {
+                    throw new Error('Fallback failed');
+                }
+            } catch (fallbackErr) {
+                console.error('API offline:', fallbackErr);
+                setIsOnline(false);
+                setLatency(0);
+                setStats(null);
+            }
         }
     };
 
