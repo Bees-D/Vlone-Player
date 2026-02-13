@@ -1,6 +1,6 @@
 import { Song, Category, Era, Stats, Folder, ProducerFilter } from './types';
 
-const BASE_URL = 'https://juicewrldapi.com/juicewrld';
+const BASE_URL = 'https://juicewrldapi.com';
 const TIMEOUT_MS = 10000; // 10s timeout to prevent hanging
 
 const getHeaders = () => {
